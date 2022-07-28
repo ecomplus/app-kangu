@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/ecomplus/application-starter/compare/v1.0.2...v1.1.0) (2022-07-28)
+
+
+### Features
+
+* add discount,additional and rename services ([d046719](https://github.com/ecomplus/application-starter/commit/d04671957898b0e113a4f5d9d8b532cd0513827b))
+
+
+### Bug Fixes
+
+* console error ([65cd627](https://github.com/ecomplus/application-starter/commit/65cd6276a0296a4a06370b3e76d0df58ff54813c))
+* function ([fbdddbf](https://github.com/ecomplus/application-starter/commit/fbdddbfed65e5f7f233c9524ef583a9e1fcea05b))
+* get updatadata ([2db0adc](https://github.com/ecomplus/application-starter/commit/2db0adce5df2014a61cab4ba9db0c3c3b241033b))
+* insert price without utils ([65cf02a](https://github.com/ecomplus/application-starter/commit/65cf02a22c3bed47560f40b234438a9bbaa2658e))
+* items call ([f895670](https://github.com/ecomplus/application-starter/commit/f895670df743d116ac2c8fd01028a2a4e4efe320))
+* name of propertie ([9b62511](https://github.com/ecomplus/application-starter/commit/9b62511ca9c9d06ea3a944bf61433664c1d39a2b))
+* rename token ([0abb490](https://github.com/ecomplus/application-starter/commit/0abb490004e6a1410ecc34a5a343cfe8a0555b49))
+* resolve conflicts ([becc6ea](https://github.com/ecomplus/application-starter/commit/becc6eaa043480335b30b126ed39c9d160e66d50))
+
 ### [1.0.2](https://github.com/ecomplus/application-starter/compare/v1.0.1...v1.0.2) (2022-07-06)
 
 

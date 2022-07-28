@@ -7,11 +7,11 @@
 
 const app = {
   app_id: 102707,
-  title: 'Kangu',
+  title: 'Kangu TESTE',
   slug: 'kangu',
   type: 'external',
   state: 'active',
-  authentication: false,
+  authentication: true,
 
   /**
    * Uncomment modules above to work with E-Com Plus Mods API on Storefront.
@@ -51,7 +51,7 @@ const app = {
       'GET'            // Read store info
     ],
     procedures: [
-      //'POST'           // Create procedures to receive webhooks
+      'POST'           // Create procedures to receive webhooks
     ],
     products: [
       // 'GET',           // Read products with public and private fields
@@ -84,7 +84,7 @@ const app = {
     orders: [
       'GET',           // List/read orders with public and private fields
       // 'POST',          // Create orders
-      // 'PATCH',         // Edit orders
+      'PATCH',         // Edit orders
       // 'PUT',           // Overwrite orders
       // 'DELETE',        // Delete orders
     ],
@@ -99,10 +99,14 @@ const app = {
     /**
      * Prefer using 'fulfillments' and 'payment_history' subresources to manipulate update order status.
      */
-    'orders/fulfillments': [
-      // 'GET',           // List/read order fulfillment and tracking events
-      'POST',          // Create fulfillment event with new status
+     'orders/fulfillments': [
+      'GET',           // List/read order fulfillment and tracking events
+      'POST',             // Create fulfillment event with new status
       // 'DELETE',        // Delete fulfillment event
+    ],
+    'orders/shipping_lines': [
+      'GET',              // List/read order shipping lines
+      'PATCH',            // Edit order shipping line nested object
     ],
     'orders/payments_history': [
       // 'GET',           // List/read order payments history events
@@ -155,6 +159,16 @@ const app = {
         title: 'CEP de origem'
       },
       hide: true
+    },
+    additional_price: {
+      schema: {
+        type: 'number',
+        minimum: -999999,
+        maximum: 999999,
+        title: 'Custo adicional',
+        description: 'Valor a adicionar (negativo para descontar) no frete calculado em todas regras'
+      },
+      hide: false
     },
     seller: {
       schema: {
@@ -335,16 +349,116 @@ const app = {
         }
       },
       hide: false
-    }/* ,
-    disable_auto_tag: {
+    },
+    shipping_rules: {
+      schema: {
+        title: 'Regras de envio',
+        description: 'Aplicar descontos/adicionais condiciAtivar regiões',
+        type: 'array',
+        maxItems: 300,
+        items: {
+          title: 'Regra de envio',
+          type: 'object',
+          minProperties: 1,
+          properties: {
+            service_name: {
+              type: 'string',
+              title: 'Nome do serviço'
+            },
+            zip_range: {
+              title: 'Faixa de CEP',
+              type: 'object',
+              required: [
+                'min',
+                'max'
+              ],
+              properties: {
+                min: {
+                  type: 'integer',
+                  minimum: 10000,
+                  maximum: 999999999,
+                  title: 'CEP inicial'
+                },
+                max: {
+                  type: 'integer',
+                  minimum: 10000,
+                  maximum: 999999999,
+                  title: 'CEP final'
+                }
+              }
+            },
+            min_amount: {
+              type: 'number',
+              minimum: 1,
+              maximum: 999999999,
+              title: 'Valor mínimo da compra'
+            },
+            discount: {
+              title: 'Desconto',
+              type: 'object',
+              required: [
+                'value'
+              ],
+              properties: {
+                percentage: {
+                  type: 'boolean',
+                  default: false,
+                  title: 'Desconto percentual'
+                },
+                value: {
+                  type: 'number',
+                  minimum: -99999999,
+                  maximum: 99999999,
+                  title: 'Valor do desconto',
+                  description: 'Valor percentual/fixo do desconto ou acréscimo (negativo)'
+                }
+              }
+            }
+          }
+        }
+      },
+      hide: false
+    },
+    services: {
+      schema: {
+        title: 'Rótulo dos Serviços',
+        description: 'Para alterar o nome de exibição de algum serviço basta infomar o código do serviço e um novo rótulo de exibição. ',
+        type: 'array',
+        maxItems: 6,
+        items: {
+          title: 'Serviço de entrega',
+          type: 'object',
+          required: [
+            'service_name',
+            'label'
+          ],
+          properties: {
+            service_name: {
+              type: 'string',
+              title: 'Serviço',
+              default: 'PAC',
+              description: 'Nome oficial do serviço na transportadora'
+            },
+            label: {
+              type: 'string',
+              maxLength: 50,
+              title: 'Rótulo',
+              description: 'Nome do serviço exibido aos clientes'
+            }
+          }
+        }
+      },
+      hide: true
+    },
+    enable_auto_tag: {
       schema: {
         type: 'boolean',
         default: false,
-        title: 'Desabilitar geração de envios a Kangu',
-        description: 'Desativa a criação automática de tags de envio para Kangu'
+        title: 'Ativar geração de envios a Kangu',
+        description: 'Ativar a criação automática de tags de envio para Kangu'
       },
       hide: false
-    } */
+    }
   }
 }
 
@@ -355,9 +469,6 @@ const app = {
 
 const procedures = []
 
-/**
- * Uncomment and edit code above to configure `triggers` and receive respective `webhooks`:
-
 const { baseUri } = require('./__env')
 
 procedures.push({
@@ -365,44 +476,17 @@ procedures.push({
 
   triggers: [
     // Receive notifications when new order is created:
-    {
+/*     {
       resource: 'orders',
       action: 'create',
-    },
+    }, */
 
     // Receive notifications when order financial/fulfillment status are set or changed:
     // Obs.: you probably SHOULD NOT enable the orders triggers below and the one above (create) together.
     {
       resource: 'orders',
-      field: 'financial_status',
-    },
-    {
-      resource: 'orders',
       field: 'fulfillment_status',
-    },
-
-    // Receive notifications when products/variations stock quantity changes:
-    {
-      resource: 'products',
-      field: 'quantity',
-    },
-    {
-      resource: 'products',
-      subresource: 'variations',
-      field: 'quantity'
-    },
-
-    // Receive notifications when cart is edited:
-    {
-      resource: 'carts',
-      action: 'change',
-    },
-
-    // Receive notifications when customer is deleted:
-    {
-      resource: 'customers',
-      action: 'delete',
-    },
+    }
 
     // Feel free to create custom combinations with any Store API resource, subresource, action and field.
   ],
@@ -418,9 +502,6 @@ procedures.push({
     }
   ]
 })
-
- * You may also edit `routes/ecom/webhook.js` to treat notifications properly.
- */
 
 exports.app = app
 

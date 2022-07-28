@@ -1,5 +1,6 @@
 // read configured E-Com Plus app data
 const getAppData = require('./../../lib/store-api/get-app-data')
+const createTag = require('../../lib/kangu/create-tag')
 
 const SKIP_TRIGGER_NAME = 'SkipTrigger'
 const ECHO_SUCCESS = 'SUCCESS'
@@ -17,7 +18,8 @@ exports.post = ({ appSdk }, req, res) => {
   const trigger = req.body
 
   // get app configured options
-  getAppData({ appSdk, storeId })
+  appSdk.getAuth(storeId).then(auth => {
+    return getAppData({ appSdk, storeId, auth })
 
     .then(appData => {
       if (
@@ -31,10 +33,91 @@ exports.post = ({ appSdk }, req, res) => {
       }
 
       /* DO YOUR CUSTOM STUFF HERE */
+      const { kangu_token } = appData
+      if (appData.enable_auto_tag && kangu_token && trigger.resource === 'orders') {
+        // handle order fulfillment status changes
+        const order = trigger.body
+        if (
+          order &&
+          order.fulfillment_status &&
+          order.fulfillment_status.current === 'ready_for_shipping'
+        ) {
+          // read full order body
+          const resourceId = trigger.resource_id
+          console.log('Trigger disparado para enviar tag com id:', resourceId)
+          return appSdk.apiRequest(storeId, `/orders/${resourceId}.json`, 'GET', null, auth)
+            .then(({ response }) => {
+              const order = response.data
+              if (order && order.shipping_lines[0] && order.shipping_lines[0].app && order.shipping_lines[0].app.service_name.toLowerCase().indexOf('kangu') === -1) {
+                return res.send(ECHO_SKIP)
+              }
+              console.log(`Shipping tag for #${storeId} ${order._id}`)
+              return createTag(order, kangu_token, storeId, appData, appSdk)
+                .then(data => {
+                  console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`)
+                  console.log(JSON.stringify(data))
+                  // updates hidden_metafields with the generated tag id
+                  return appSdk.apiRequest(
+                    storeId,
+                    `/orders/${resourceId}/hidden_metafields.json`,
+                    'POST',
+                    {
+                      namespace: 'app-kangu',
+                      field: 'rastreio',
+                      value: data.codigo
+                    },
+                    null,
+                    auth
+                  )
+                  .then(() => data)
+                  .catch(err => {
+                    console.log(err.statusCode)
+                    console.error(err.message)
+                  })
+                })
 
+                .then(data => {
+                  console.log(data)
+                  const tag = data
+                  if (tag.etiquetas.length) {
+                    const shippingLine = order.shipping_lines[0]
+                    if (shippingLine) {
+                      const trackingCodes = shippingLine.tracking_codes || []
+                      trackingCodes.push({
+                        code: tag.etiquetas[0].numeroTransp,
+                        link: `https://www.melhorrastreio.com.br/rastreio/${tag.etiquetas[0].numeroTransp}`
+                      })
+                      return appSdk.apiRequest(
+                        storeId,
+                        `/orders/${resourceId}/shipping_lines/${shippingLine._id}.json`,
+                        'PATCH',
+                        { tracking_codes: trackingCodes },
+                        null,
+                        auth 
+                      )
+                    }
+                  }
+                  return null
+                })
+
+                .then(() => {
+                  console.log(`>> 'hidden_metafields' do pedido ${order._id} atualizado com sucesso!`)
+                  // done
+                  res.send(ECHO_SUCCESS)
+                })
+                .catch(err => {
+                  console.log('deu error após gerar', err.message)
+                })
+            })
+        }
+      }
+    })
+    .then(() => {
       // all done
       res.send(ECHO_SUCCESS)
     })
+  })
+
 
     .catch(err => {
       if (err.name === SKIP_TRIGGER_NAME) {

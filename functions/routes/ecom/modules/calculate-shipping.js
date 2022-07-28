@@ -23,6 +23,13 @@ exports.post = ({ appSdk }, req, res) => {
   // merge all app options configured by merchant
   const appData = Object.assign({}, application.data, application.hidden_data)
 
+  let shippingRules
+  if (Array.isArray(appData.shipping_rules) && appData.shipping_rules.length) {
+    shippingRules = appData.shipping_rules
+  } else {
+    shippingRules = []
+  }
+
   const token = appData.kangu_token
   if (!token) {
     // must have configured kangu doc number and token
@@ -42,6 +49,16 @@ exports.post = ({ appSdk }, req, res) => {
   const originZip = params.from
     ? params.from.zip.replace(/\D/g, '')
     : appData.zip ? appData.zip.replace(/\D/g, '') : ''
+
+  const matchService = (service, name) => {
+    const fields = ['service_name', 'service_code']
+    for (let i = 0; i < fields.length; i++) {
+      if (service[fields[i]]) {
+        return service[fields[i]].trim().toUpperCase() === name.toUpperCase()
+      }
+    }
+    return true
+  }
 
   const checkZipCode = rule => {
     // validate rule zip range
@@ -229,62 +246,116 @@ exports.post = ({ appSdk }, req, res) => {
               : false
 
             // push shipping service object to response
-            const shippingService = {
-              label: kanguPickup
-                ? 'Retirar no parceiro'
-                : kanguService.transp_nome || kanguService.descricao,
+            const shippingLine = {
+              from: {
+                ...params.from,
+                ...appData.from,
+                zip: originZip
+              },
+              to: params.to,
+              price,
+              total_price: price,
+              discount: 0,
+              delivery_time: {
+                days: parseInt(kanguService.prazoEnt, 10),
+                working_days: true
+              },
+              delivery_instructions: kanguPickup
+                ? `${kanguPickup.nome} - ${completeAddress(kanguPickup.endereco)}`
+                : undefined,
+              posting_deadline: {
+                days: 3,
+                ...appData.posting_deadline
+              },
+              package: {
+                weight: {
+                  value: finalWeight,
+                  unit: 'kg'
+                }
+              },
+              custom_fields: [
+                {
+                  field: 'kangu_reference',
+                  value: kanguPickup
+                    ? String(kanguPickup.referencia)
+                    : String(kanguService.referencia)
+                },
+                {
+                  field: 'nfe_required',
+                  value: kanguService.nf_obrig === 'N' ? 'false' : 'true'
+                }
+              ],
+              flags: ['kangu-ws', `kangu-${serviceCode}`.substr(0, 20)]
+            }
+            if (!lowestPriceShipping || lowestPriceShipping.price > price) {
+              lowestPriceShipping = shippingLine
+            }
+
+            // check for default configured additional/discount price
+            if (appData.additional_price) {
+              if (appData.additional_price > 0) {
+                shippingLine.other_additionals = [{
+                  tag: 'additional_price',
+                  label: 'Adicional padrão',
+                  price: appData.additional_price
+                }]
+              } else {
+                // negative additional price to apply discount
+                shippingLine.discount -= appData.additional_price
+              }
+              // update total price
+              shippingLine.total_price += appData.additional_price
+            }
+
+            // search for discount by shipping rule
+            const shippingName = kanguService.transp_nome || kanguService.descricao
+            if (Array.isArray(shippingRules)) {
+              for (let i = 0; i < shippingRules.length; i++) {
+                const rule = shippingRules[i]
+                if (
+                  rule &&
+                  matchService(rule, shippingName) &&
+                  checkZipCode(rule) &&
+                  !(rule.min_amount > params.subtotal)
+                ) {
+                  // valid shipping rule
+                  if (rule.discount && rule.service_name) {
+                    let discountValue = rule.discount.value
+                    if (rule.discount.percentage) {
+                      discountValue *= (shippingLine.total_price / 100)
+                    }
+                    shippingLine.discount += discountValue
+                    shippingLine.total_price -= discountValue
+                    if (shippingLine.total_price < 0) {
+                      shippingLine.total_price = 0
+                    }
+                    break
+                  }
+                }
+              }
+            }
+
+            // change label
+            let label = shippingName
+            if (appData.services && Array.isArray(appData.services) && appData.services.length) {
+              const service = appData.services.find(service => {
+                return service && matchService(service, label)
+              })
+              if (service && service.label) {
+                label = service.label
+              }
+            }
+
+            response.shipping_services.push({
+              label,
               carrier: kanguService.transp_nome,
               carrier_doc_number: typeof kanguService.cnpjTransp === 'string'
                 ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
                 : undefined,
               service_name: `${(kanguService.descricao || serviceCode)} (Kangu)`,
               service_code: serviceCode,
-              shipping_line: {
-                from: {
-                  ...params.from,
-                  ...appData.from,
-                  zip: originZip
-                },
-                to: params.to,
-                price,
-                total_price: price,
-                discount: 0,
-                delivery_time: {
-                  days: parseInt(kanguService.prazoEnt, 10),
-                  working_days: true
-                },
-                delivery_instructions: kanguPickup
-                  ? `${kanguPickup.nome} - ${completeAddress(kanguPickup.endereco)}`
-                  : undefined,
-                posting_deadline: {
-                  days: 3,
-                  ...appData.posting_deadline
-                },
-                package: {
-                  weight: {
-                    value: finalWeight,
-                    unit: 'kg'
-                  }
-                },
-                custom_fields: [
-                  {
-                    field: 'kangu_reference',
-                    value: kanguPickup
-                      ? String(kanguPickup.referencia)
-                      : String(kanguService.referencia)
-                  },
-                  {
-                    field: 'nfe_required',
-                    value: kanguService.nf_obrig === 'N' ? 'false' : 'true'
-                  }
-                ],
-                flags: ['kangu-ws', `kangu-${serviceCode}`.substr(0, 20)]
-              }
-            }
-            if (!lowestPriceShipping || lowestPriceShipping.price > price) {
-              lowestPriceShipping = shippingService.shipping_line
-            }
-            response.shipping_services.push(shippingService)
+              shipping_line: shippingLine
+            })
           })
 
           if (lowestPriceShipping) {

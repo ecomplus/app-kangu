@@ -1,125 +1,202 @@
 const axios = require('axios')
 const ecomUtils = require('@ecomplus/utils')
 
-module.exports = (token, order) => {
-  // create new shipping tag with Kangu
-  // https://portal.kangu.com.br/docs/api/transporte/#/
+module.exports = async (order, token, storeId, appData, appSdk) => {
+// create new shipping tag with Kangu
+// https://portal.kangu.com.br/docs/api/transporte/#/
   const headers = {
     token,
     accept: 'application/json',
     'Content-Type': 'application/json'
   }
-  
-
   const data = {}
+  data.destinatario = {}
+  data.remetente = {}
+
+  const kanguCustom = (order, field) => {
+    const shippingCustom = order.shipping_lines[0] && order.shipping_lines[0].custom_fields
+    const customField = shippingCustom.find(custom => custom.field === field); console.log(customField)
+    if (customField !== undefined && customField !== 'false') {
+      return customField.value
+    } else {
+      return false
+    }
+  }
+
+  const getEcomProduct = (appSdk, storeId, productId) => {
+    const resource = `/products/${productId}.json`
+    return new Promise((resolve, reject) => {
+      appSdk.apiRequest(storeId, resource, 'GET', null, null, noAuth = true)
+        .then(({ response }) => {
+          resolve({ response })
+        })
+        .catch((err) => {
+          console.log(err.message)
+          console.log('erro na request api')
+          reject(err)
+        })
+    })     
+  }
+
+  const hasInvoice = (order) => {
+    return Boolean(order.shipping_lines.find(({ invoices }) => {
+      return invoices && invoices[0] && invoices[0].number
+    }))
+  }
+
+  const getPropertie = (array, item, propertie) => {
+    const product = array.find(one => one.sku === item.sku)
+    return product[propertie]
+  }
+
+
+
+  const sendType = hasInvoice(order) ? 'N' : 'D'
+  const { items } = order
 
   // start parsing order body
-  if (order.items) {
-    data.produtos = order.items.map(item => {
-      const { name, quantity, dimensions, weight } = item
-      // parse cart items to kangu schema
-      let kgWeight = 0
-      if (weight && weight.value) {
-        switch (weight.unit) {
-          case 'g':
-            kgWeight = weight.value / 1000
-            break
-          case 'mg':
-            kgWeight = weight.value / 1000000
-            break
-          default:
-            kgWeight = weight.value
+  data.produtos = []
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      await getEcomProduct(appSdk, storeId, items[i].product_id)
+      .then(({ response }) => {
+        const product = response.data
+          console.log('Busca produto')
+          console.log(JSON.stringify(product))
+          const { name, dimensions, weight } = product
+          const quantity = getPropertie(items, product, 'quantity')
+          const price = getPropertie(items, product, 'price')
+        // parse cart items to kangu schema
+        let kgWeight = 0
+        if (weight && weight.value) {
+          switch (weight.unit) {
+            case 'g':
+              kgWeight = weight.value / 1000
+              break
+            case 'mg':
+              kgWeight = weight.value / 1000000
+              break
+            default:
+              kgWeight = weight.value
+          }
         }
-      }
-      const cmDimensions = {}
-      if (dimensions) {
-        for (const side in dimensions) {
-          const dimension = dimensions[side]
-          if (dimension && dimension.value) {
-            switch (dimension.unit) {
-              case 'm':
-                cmDimensions[side] = dimension.value * 100
-                break
-              case 'mm':
-                cmDimensions[side] = dimension.value / 10
-                break
-              default:
-                cmDimensions[side] = dimension.value
+        const cmDimensions = {}
+        if (dimensions) {
+          for (const side in dimensions) {
+            const dimension = dimensions[side]
+            if (dimension && dimension.value) {
+              switch (dimension.unit) {
+                case 'm':
+                  cmDimensions[side] = dimension.value * 100
+                  break
+                case 'mm':
+                  cmDimensions[side] = dimension.value / 10
+                  break
+                default:
+                  cmDimensions[side] = dimension.value
+              }
             }
           }
         }
-      }
-      return {
-        peso: kgWeight,
-        altura: cmDimensions.height || 0,
-        largura: cmDimensions.width || 0,
-        comprimento: cmDimensions.length || 0,
-        valor: ecomUtils.price(item),
-        quantidade: quantity,
-        produto: name
-      }
-    })
+        data.produtos.push({
+          peso: kgWeight,
+          altura: cmDimensions.height || 0,
+          largura: cmDimensions.width || 0,
+          comprimento: cmDimensions.length || 0,
+          valor: price,
+          quantidade: quantity,
+          produto: name
+        })
+      })
+      .catch(err => {
+        console.log(err.message)
+        console.error('deu erro ao buscar produto')
+      })
+    }
   }
+  // config source
   data.origem = 'E-Com Plus'
-
+  // config order info
   data.pedido = {
     numeroCli: order._id,
-    vlrMerc: order.amount && order.amount.total || 0
+    vlrMerc: (order.amount && order.amount.total) || 0,
+    tipo: sendType
   }
-  
 
+  if (hasInvoice(order)) {
+    const invoice = order.shipping_lines[0].invoices[0]
+    data.pedido.numero = invoice.number
+    data.pedido.serie = invoice.serial_number
+    data.pedido.chave = invoice.access_key
+  }
+  // config buyer information
   const buyer = order.buyers && order.buyers[0]
-  if (buyer && buyer.registry_type === 'p' && buyer.doc_number) {
-    data.cpf_destinatario = buyer.doc_number.replace(/\D/g, '')
+  if (buyer && buyer.doc_number) {
+    data.destinatario.cnpjCpf = buyer.doc_number.replace(/\D/g, '')
+    data.destinatario.contato = buyer.display_name
   }
 
   const requests = []
   if (order.shipping_lines) {
     order.shipping_lines.forEach(shippingLine => {
       if (shippingLine.app) {
-        data.servicos = [shippingLine.service_code]
+        data.servicos = [shippingLine.app.service_code]
         // parse addresses and package info from shipping line object
         if (shippingLine.from) {
-          data.remetente = {
-            
+          data.remetente = {}
+          if (appData.seller) {
+            data.remetente.nome = appData.seller.name
+            data.remetente.cnpjCpf = appData.seller.doc_number
+            data.remetente.contato = appData.seller.contact
+          }
+          data.remetente.endereco = {
+            logradouro: shippingLine.from.street,
+            numero: shippingLine.from.number || 'SN',
+            bairro: shippingLine.from.borough,
+            cep: shippingLine.from.zip.replace(/\D/g, ''),
+            cidade: shippingLine.from.city,
+            uf: shippingLine.from.province_code,
+            complemento: shippingLine.from.complement || ''
           }
         }
-        data.destinatario = shippingLine.to.name
-        data.cep = shippingLine.to.zip.replace(/\D/g, '')
-        data.logradouro = shippingLine.to.street
-        data.bairro = shippingLine.to.borough
-        data.numero = shippingLine.to.number || 'SN'
-        if (shippingLine.to.complement) {
-          data.complemento = shippingLine.to.complement
+
+        if (shippingLine.to) {
+          data.destinatario.nome = shippingLine.to.name
+          data.destinatario.endereco = {
+            logradouro: shippingLine.to.street,
+            numero: shippingLine.to.number || 'SN',
+            bairro: shippingLine.to.borough,
+            cep: shippingLine.to.zip.replace(/\D/g, ''),
+            cidade: shippingLine.to.city,
+            uf: shippingLine.to.province_code,
+            complemento: shippingLine.to.complement || ''
+          }
         }
-        data.cidade = shippingLine.to.city
-        data.estado = shippingLine.to.province_code
         if (shippingLine.package && shippingLine.package.weight) {
           const { value, unit } = shippingLine.package.weight
           data.pedido.pesoMerc = !unit || unit === 'kg' ? value
             : unit === 'g' ? value * 1000
               : value * 1000000
         }
-        if (shippingLine.declared_value) {
-          data.valor_seguro = shippingLine.declared_value
-        }
-        data.cep_origem = shippingLine.from.zip.replace(/\D/g, '')
+        data.referencia = kanguCustom(order, 'kangu_reference')
+        console.log('Estou criando a tag')
         console.log(`> Create tag for #${order._id}: ` + JSON.stringify(data))
-        // send POST to generate Manda Bem tag
+        // send POST to generate Kangu tag
         requests.push(axios.post(
-          'https://mandabem.com.br/ws/gerar_envio',
-          qs.stringify(data),
+          'https://portal.kangu.com.br/tms/transporte/solicitar',
+          data,
           {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
+            headers
           }
         ).then(response => {
-          console.log('> Manda Bem create tag', JSON.stringify(response.data))
-          return response
-        }).catch(console.error))    
+          console.log('> Kangu create tag')
+          return response.data
+        }).catch(err => {
+          console.log('deu erro na etiqueta', err.message)
+        }))
       }
     })
   }
+    
   return Promise.all(requests)
 }

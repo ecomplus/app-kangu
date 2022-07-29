@@ -44,13 +44,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
     }))
   }
 
-  const getPropertie = (array, item, propertie) => {
-    const product = array.find(one => one.sku === item.sku)
-    return product[propertie]
-  }
-
-
-
   const sendType = hasInvoice(order) ? 'N' : 'D'
   const { items } = order
 
@@ -58,6 +51,10 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   data.produtos = []
   if (items) {
     for (let i = 0; i < items.length; i++) {
+      let produto = {}
+      produto.valor = items[i].final_price
+      produto.quantidade = items[i].quantity
+      produto.produto = items[i].name
       await getEcomProduct(appSdk, storeId, items[i].product_id)
       .then(({ response }) => {
         const product = response.data
@@ -98,14 +95,12 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
             }
           }
         }
+        produto.peso = kgWeight
+        produto.altura = cmDimensions.height || 0,
+        produto.largura = cmDimensions.width || 0,
+        produto.comprimento = cmDimensions.length || 0
         data.produtos.push({
-          peso: kgWeight,
-          altura: cmDimensions.height || 0,
-          largura: cmDimensions.width || 0,
-          comprimento: cmDimensions.length || 0,
-          valor: price,
-          quantidade: quantity,
-          produto: name
+          produto
         })
       })
       .catch(err => {

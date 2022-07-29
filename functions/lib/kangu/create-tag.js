@@ -61,8 +61,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
           console.log('Busca produto')
           console.log(JSON.stringify(product))
           const { name, dimensions, weight } = product
-          const quantity = getPropertie(items, product, 'quantity')
-          const price = getPropertie(items, product, 'price')
         // parse cart items to kangu schema
         let kgWeight = 0
         if (weight && weight.value) {

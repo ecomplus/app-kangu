@@ -99,9 +99,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         produto.altura = cmDimensions.height || 0,
         produto.largura = cmDimensions.width || 0,
         produto.comprimento = cmDimensions.length || 0
-        data.produtos.push({
-          produto
-        })
+        data.produtos.push(produto)
       })
       .catch(err => {
         console.log(err.message)

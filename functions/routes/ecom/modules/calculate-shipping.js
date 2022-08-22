@@ -210,6 +210,9 @@ exports.post = ({ appSdk }, req, res) => {
       'https://portal.kangu.com.br/tms/transporte/simular',
       body,
       {
+        timeout: (params.is_checkout_confirmation ? 8000 : 5000)
+      },
+      {
         headers: {
           token,
           accept: 'application/json',

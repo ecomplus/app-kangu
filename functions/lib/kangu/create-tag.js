@@ -132,7 +132,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   if (order.shipping_lines) {
     order.shipping_lines.forEach(shippingLine => {
       if (shippingLine.app) {
-        data.servicos = [shippingLine.app.service_code]
+        data.servicos = [shippingLine.app.service_name]
         // parse addresses and package info from shipping line object
         if (shippingLine.from) {
           data.remetente = {}

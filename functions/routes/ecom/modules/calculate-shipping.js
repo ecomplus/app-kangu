@@ -353,7 +353,7 @@ exports.post = ({ appSdk }, req, res) => {
               carrier_doc_number: typeof kanguService.cnpjTransp === 'string'
                 ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
                 : undefined,
-              service_name: `${(serviceCode || kanguService.descricao)} (Kangu)`,
+              service_name: serviceCode || kanguService.descricao,
               service_code: kanguPickup
               ? String(kanguPickup.referencia)
               : String(kanguService.referencia),

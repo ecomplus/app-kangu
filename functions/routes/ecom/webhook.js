@@ -54,7 +54,7 @@ exports.post = ({ appSdk }, req, res) => {
               console.log(`Shipping tag for #${storeId} ${order._id}`)
               return createTag(order, kangu_token, storeId, appData, appSdk)
                 .then(data => {
-                  console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`, data)
+                  console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`, JSON.stringify(data))
                   // updates hidden_metafields with the generated tag id
                   return appSdk.apiRequest(
                     storeId,
@@ -64,9 +64,7 @@ exports.post = ({ appSdk }, req, res) => {
                       namespace: 'app-kangu',
                       field: 'rastreio',
                       value: data.codigo
-                    },
-                    null,
-                    auth
+                    }
                   )
                   .then(() => data)
                   .catch(err => {
@@ -91,8 +89,6 @@ exports.post = ({ appSdk }, req, res) => {
                         `/orders/${resourceId}/shipping_lines/${shippingLine._id}.json`,
                         'PATCH',
                         { tracking_codes: trackingCodes },
-                        null,
-                        auth 
                       )
                     }
                   }

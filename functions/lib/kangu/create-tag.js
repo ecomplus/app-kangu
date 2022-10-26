@@ -185,6 +185,8 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
           return response.data
         }).catch(err => {
           console.log('deu erro na etiqueta', err.message)
+          console.log('------------', err)
+          throw err
         }))
       }
     })

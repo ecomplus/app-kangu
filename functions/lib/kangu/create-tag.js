@@ -1,5 +1,6 @@
 const axios = require('axios')
 const ecomUtils = require('@ecomplus/utils')
+const { logger } = require('firebase-functions')
 
 module.exports = async (order, token, storeId, appData, appSdk) => {
 // create new shipping tag with Kangu
@@ -21,6 +22,16 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
     } else {
       return false
     }
+  }
+
+  const debugAxiosError = error => {
+    const err = new Error(error.message)
+    if (error.response) {
+      err.status = error.response.status
+      err.response = error.response.data
+    }
+    err.request = error.config
+    logger.error(err)
   }
 
   const getEcomProduct = (appSdk, storeId, productId) => {
@@ -118,7 +129,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   if (hasInvoice(order)) {
     const invoice = order.shipping_lines[0].invoices[0]
     data.pedido.numero = invoice.number
-    data.pedido.serie = invoice.serial_number
+    data.pedido.serie = invoice.serial_number || 1
     data.pedido.chave = invoice.access_key
   }
   // config buyer information
@@ -171,7 +182,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
               : value * 1000000
         }
         data.referencia = kanguCustom(order, 'kangu_reference')
-        console.log('Estou criando a tag')
         console.log(`> Create tag for #${order._id}: ` + JSON.stringify(data))
         // send POST to generate Kangu tag
         requests.push(axios.post(
@@ -183,10 +193,10 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         ).then(response => {
           console.log('> Kangu create tag')
           return response.data
-        }).catch(err => {
-          console.log('deu erro na etiqueta', err.message)
-          console.log('------------', err)
-          throw err
+        }).catch(error => {
+          console.log('deu erro na etiqueta')
+          debugAxiosError(error)
+          throw error
         }))
       }
     })

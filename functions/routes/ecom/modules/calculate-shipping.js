@@ -205,6 +205,7 @@ exports.post = ({ appSdk }, req, res) => {
       ordernar,
       produtos
     }
+    console.log('Check body request', JSON.stringify(body))
     // send POST request to kangu REST API
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
@@ -383,6 +384,9 @@ exports.post = ({ appSdk }, req, res) => {
 
       .catch(err => {
         let { message, response } = err
+        console.log('>> Kangu message error', message)
+        console.log('>> Kangu response error', response)
+
         if (response && response.data) {
           // try to handle kangu error response
           const { data } = response
@@ -407,6 +411,7 @@ exports.post = ({ appSdk }, req, res) => {
         } else {
           console.error(err)
         }
+        console.log('error', err)
         return res.status(409).send({
           error: 'CALCULATE_ERR',
           message

@@ -138,6 +138,13 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
     data.destinatario.cnpjCpf = buyer.doc_number.replace(/\D/g, '')
     data.destinatario.contato = buyer.display_name
   }
+  if (buyer && buyer.main_email) {
+    data.destinatario.email = buyer.main_email
+  }
+
+  if (buyer && Array.isArray(buyer.phones) && buyer.phones.length) {
+    data.destinatario.celular = buyer.phones[0].number
+  }
 
   const requests = []
   if (order.shipping_lines) {

@@ -68,13 +68,25 @@ exports.post = ({ appSdk }, req, res) => {
                   )
                   .then(() => data)
                   .catch(err => {
-                    console.log(err.statusCode)
-                    console.error(err.message)
+                    console.log('Erro hidden data')
+                    if (err.response) {
+                      console.log(err.response)
+                      const { status, data } = err.response
+                      if (status !== 401 && status !== 403) {
+                        if (typeof data === 'object' && data) {
+                          console.log(JSON.stringify(data))
+                        } else {
+                          console.log(data)
+                        }
+                      }
+                    } else {
+                      console.error(err)
+                    }
                   })
                 })
 
                 .then(data => {
-                  console.log(data)
+                  console.log('Inserir rastreio', data)
                   const tag = data
                   if (tag.etiquetas.length) {
                     const shippingLine = order.shipping_lines[0]

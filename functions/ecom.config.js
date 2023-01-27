@@ -83,7 +83,7 @@ const app = {
     ],
     orders: [
       'GET',           // List/read orders with public and private fields
-      // 'POST',          // Create orders
+      'POST',          // Create orders
       'PATCH',         // Edit orders
       // 'PUT',           // Overwrite orders
       // 'DELETE',        // Delete orders

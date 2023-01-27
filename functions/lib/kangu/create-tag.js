@@ -16,7 +16,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
 
   const kanguCustom = (order, field) => {
     const shippingCustom = order.shipping_lines[0] && order.shipping_lines[0].custom_fields
-    const customField = shippingCustom.find(custom => custom.field === field); console.log(customField)
+    const customField = shippingCustom.find(custom => custom.field === field); 
     if (customField !== undefined && customField !== 'false') {
       return customField.value
     } else {
@@ -69,9 +69,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
       await getEcomProduct(appSdk, storeId, items[i].product_id)
       .then(({ response }) => {
         const product = response.data
-          console.log('Busca produto')
-          console.log(JSON.stringify(product))
-          const { name, dimensions, weight } = product
+        const { name, dimensions, weight } = product
         // parse cart items to kangu schema
         let kgWeight = 0
         if (weight && weight.value) {
@@ -108,7 +106,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         produto.altura = cmDimensions.height || 0,
         produto.largura = cmDimensions.width || 0,
         produto.comprimento = cmDimensions.length || 0
-        console.log(produto)
         data.produtos.push(produto)
       })
       .catch(err => {

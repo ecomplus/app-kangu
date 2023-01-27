@@ -24,6 +24,7 @@
     "customers": [],
     "orders": [
       "GET",
+      "POST",
       "PATCH"
     ],
     "carts": [],

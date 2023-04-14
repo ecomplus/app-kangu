@@ -253,6 +253,7 @@ const app = {
               'RO',
               'RJ',
               'RS',
+              'RN',
               'SC',
               'SP',
               'SE',

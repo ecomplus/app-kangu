@@ -215,7 +215,7 @@ exports.post = ({ appSdk }, req, res) => {
           accept: 'application/json',
           'Content-Type': 'application/json'
         },
-        timeout: (params.is_checkout_confirmation ? 8000 : 5000)
+        timeout: (params.is_checkout_confirmation ? 8000 : 6000)
       }
     )
 

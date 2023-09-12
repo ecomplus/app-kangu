@@ -18,7 +18,9 @@ exports.post = ({ appSdk }, req, res) => {
   const trigger = req.body
 
   // get app configured options
-  appSdk.getAuth(storeId).then(auth => {
+  let auth
+  appSdk.getAuth(storeId).then(_auth => {
+    auth = _auth
     return getAppData({ appSdk, storeId, auth })
 
     .then(appData => {
@@ -102,6 +104,7 @@ exports.post = ({ appSdk }, req, res) => {
                         `/orders/${resourceId}/shipping_lines/${shippingLine._id}.json`,
                         'PATCH',
                         { tracking_codes: trackingCodes },
+                        auth
                       )
                     }
                   }

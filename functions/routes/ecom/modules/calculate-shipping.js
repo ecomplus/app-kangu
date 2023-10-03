@@ -229,6 +229,9 @@ exports.post = ({ appSdk }, req, res) => {
             result = JSON.parse(data)
           } catch (e) {
             console.log('> kangu invalid JSON response')
+            if (storeId == 51324) {
+      console.log(JSON.stringify(data))
+    }
             return res.status(409).send({
               error: 'CALCULATE_INVALID_RES',
               message: data

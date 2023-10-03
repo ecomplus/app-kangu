@@ -15,7 +15,7 @@ exports.post = ({ appSdk }, req, res) => {
    */
 
   const { params, application } = req.body
-  // const { storeId } = req
+  const { storeId } = req
   // setup basic required response object
   const response = {
     shipping_services: []
@@ -237,7 +237,7 @@ exports.post = ({ appSdk }, req, res) => {
 
         if (result && Number(status) === 200 && Array.isArray(result)) {
           // success response
-          console.log('Quote with success')
+          console.log('Quote with success', storeId)
           let lowestPriceShipping
           result.forEach(kanguService => {
             // parse to E-Com Plus shipping line object

@@ -205,6 +205,7 @@ exports.post = ({ appSdk }, req, res) => {
       ordernar,
       produtos
     }
+    console.log('Kangu corpo de requisicao', JSON.stringify(body))
     // send POST request to kangu REST API
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',

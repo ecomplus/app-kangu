@@ -184,12 +184,11 @@ exports.post = ({ appSdk }, req, res) => {
       }
       produtos.push({
         peso: kgWeight,
-        altura: cmDimensions.height || 0,
-        largura: cmDimensions.width || 0,
-        comprimento: cmDimensions.length || 0,
+        altura: cmDimensions.height || 5,
+        largura: cmDimensions.width || 10,
+        comprimento: cmDimensions.length || 10,
         valor: ecomUtils.price(item),
-        quantidade: quantity,
-        produto: name
+        quantidade: quantity
       })
     })
 

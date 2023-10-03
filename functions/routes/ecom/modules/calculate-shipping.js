@@ -215,12 +215,11 @@ exports.post = ({ appSdk }, req, res) => {
           accept: 'application/json',
           'Content-Type': 'application/json'
         },
-        timeout: (params.is_checkout_confirmation ? 8000 : 6000)
+        timeout: (params.is_checkout_confirmation ? 12000 : 10000)
       }
-    ).then((resp) => {
-      const { data, status } = resp
+    ).then(({ data, status }) => {
       if (storeId == 51324) {
-        console.log('calculo', resp)
+        console.log('calculo 2', data)
       }
         let result
         if (typeof data === 'string') {

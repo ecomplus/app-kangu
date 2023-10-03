@@ -206,6 +206,9 @@ exports.post = ({ appSdk }, req, res) => {
       produtos
     }
     // send POST request to kangu REST API
+    if (storeId == 51324) {
+      console.log(JSON.stringify(body))
+    }
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
       body,

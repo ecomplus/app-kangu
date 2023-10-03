@@ -206,9 +206,6 @@ exports.post = ({ appSdk }, req, res) => {
       produtos
     }
     // send POST request to kangu REST API
-    if (storeId == 51324) {
-      console.log(JSON.stringify(body))
-    }
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
       body,
@@ -220,9 +217,11 @@ exports.post = ({ appSdk }, req, res) => {
         },
         timeout: (params.is_checkout_confirmation ? 8000 : 6000)
       }
-    )
-
-      .then(({ data, status }) => {
+    ).then((resp) => {
+      const { data, status } = resp
+      if (storeId == 51324) {
+        console.log('calculo', resp)
+      }
         let result
         if (typeof data === 'string') {
           try {
@@ -402,7 +401,6 @@ exports.post = ({ appSdk }, req, res) => {
           } else {
             result = data
           }
-          console.log('> kangu invalid result:', data)
           if (result && result.data) {
             // kangu error message
             return res.status(409).send({

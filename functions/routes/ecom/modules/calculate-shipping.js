@@ -205,7 +205,6 @@ exports.post = ({ appSdk }, req, res) => {
       ordernar,
       produtos
     }
-    console.log('Kangu corpo de requisicao', JSON.stringify(body))
     // send POST request to kangu REST API
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
@@ -238,6 +237,7 @@ exports.post = ({ appSdk }, req, res) => {
 
         if (result && Number(status) === 200 && Array.isArray(result)) {
           // success response
+          console.log('Quote with success')
           let lowestPriceShipping
           result.forEach(kanguService => {
             // parse to E-Com Plus shipping line object

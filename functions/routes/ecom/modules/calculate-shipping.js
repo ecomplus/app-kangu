@@ -347,6 +347,8 @@ exports.post = ({ appSdk }, req, res) => {
               }
             }
 
+            const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
+
             response.shipping_services.push({
               label,
               carrier: kanguService.transp_nome,
@@ -354,9 +356,7 @@ exports.post = ({ appSdk }, req, res) => {
                 ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
                 : undefined,
               service_name: serviceCode || kanguService.descricao,
-              service_code: kanguPickup
-              ? String(kanguPickup.referencia)
-              : String(kanguService.referencia),
+              service_code: serviceCodeName.substring(0, 70),
               shipping_line: shippingLine
             })
           })

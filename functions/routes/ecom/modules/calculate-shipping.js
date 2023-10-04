@@ -127,6 +127,8 @@ exports.post = ({ appSdk }, req, res) => {
     })
   }
 
+  console.log('Before quote', storeId)
+
   if (params.items) {
     let finalWeight = 0
     let cartSubtotal = 0
@@ -214,7 +216,7 @@ exports.post = ({ appSdk }, req, res) => {
           accept: 'application/json',
           'Content-Type': 'application/json'
         },
-        timeout: (params.is_checkout_confirmation ? 8000 : 6000)
+        timeout: 10000
       }
     ).then(({ data, status }) => {
         let result
@@ -373,12 +375,11 @@ exports.post = ({ appSdk }, req, res) => {
           res.send(response)
         } else {
           // console.log(data)
-          const err = new Error('Invalid Kangu calculate response')
+          const err = new Error('Invalid Kangu calculate response', storeId, JSON.stringify(body))
           err.response = { data, status }
           throw err
         }
       })
-
       .catch(err => {
         let { message, response } = err
         console.log('>> Kangu message error', message)

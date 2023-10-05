@@ -50,7 +50,7 @@ exports.post = ({ appSdk }, req, res) => {
           return appSdk.apiRequest(storeId, `/orders/${resourceId}.json`, 'GET', null, auth)
             .then(({ response }) => {
               const order = response.data
-              if (order && order.shipping_lines[0] && order.shipping_lines[0].app && order.shipping_lines[0].app.service_code.toLowerCase().indexOf('kangu') === -1) {
+              if (order && order.shipping_lines[0] && order.shipping_lines[0].flags && order.shipping_lines[0].flags.length && order.shipping_lines[0].flags.indexOf('kangu-ws') === -1) {
                 return res.send(ECHO_SKIP)
               }
               console.log(`Shipping tag for #${storeId} ${order._id}`)

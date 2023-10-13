@@ -185,7 +185,7 @@ exports.post = ({ appSdk }, req, res) => {
         }
       }
       produtos.push({
-        peso: kgWeight,
+        peso: kgWeight || 0.5,
         altura: cmDimensions.height || 5,
         largura: cmDimensions.width || 10,
         comprimento: cmDimensions.length || 10,

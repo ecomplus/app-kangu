@@ -17,6 +17,35 @@ exports.post = ({ appSdk }, req, res) => {
    */
   const trigger = req.body
 
+  const parseStatus = (status) => {
+    if (status) {
+      switch (status.toLowerCase()) {
+        case 'pago':
+          return 'paid'
+          break;
+        case 'em produção':
+          return 'in_production'
+          break;
+        case 'em separação':
+          return 'in_separation'
+          break;
+        case 'pronto para envio':
+          return 'ready_for_shipping'
+          break;
+        case 'nf emitida':
+          return 'invoice_issued'
+          break;
+        case 'enviado':
+          return 'shipped'
+          break;
+        default: 
+          return 'ready_for_shipping'
+          break;
+      }
+    }
+    return 'ready_for_shipping'
+  }
+
   // get app configured options
   let auth
   appSdk.getAuth(storeId).then(_auth => {
@@ -35,14 +64,15 @@ exports.post = ({ appSdk }, req, res) => {
       }
 
       /* DO YOUR CUSTOM STUFF HERE */
-      const { kangu_token } = appData
+      const { kangu_token, send_tag_status } = appData
+      const sendStatus = parseStatus(send_tag_status)
       if (appData.enable_auto_tag && kangu_token && trigger.resource === 'orders') {
         // handle order fulfillment status changes
         const order = trigger.body
         if (
           order &&
           order.fulfillment_status &&
-          order.fulfillment_status.current === 'ready_for_shipping'
+          (!sendStatus && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status.current)
         ) {
           // read full order body
           const resourceId = trigger.resource_id

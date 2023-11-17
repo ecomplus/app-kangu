@@ -170,6 +170,22 @@ const app = {
       },
       hide: false
     },
+    send_tag_status: {
+      schema: {
+        type: 'string',
+        title: 'Status para envio de etiqueta',
+        enum: [
+          'Pago',
+          'Em produção',
+          'Em separação',
+          'Pronto para envio',
+          'NF emitida',
+          'Enviado'
+        ],
+        default: 'Pronto para envio'
+      },
+      hide: false
+    },
     seller: {
       schema: {
         type: 'object',

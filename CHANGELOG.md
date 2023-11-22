@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/ecomplus/application-starter/compare/v1.1.0...v1.2.0) (2023-11-22)
+
+
+### Features
+
+* **ecom-config:** allow sending status tag ([45a9747](https://github.com/ecomplus/application-starter/commit/45a9747e048edba480a9fb53d81aaa7067c2912a))
+
+
+### Bug Fixes
+
+* **calculate-shipping:** insert timeout on request ([aef4ee4](https://github.com/ecomplus/application-starter/commit/aef4ee4c3e0ebb4d406863a40c5b75092daabcd9))
+* **deps:** update all non-major ([6b9bf57](https://github.com/ecomplus/application-starter/commit/6b9bf57f2c41b2eb86f7df529a05cd77f74fb048))
+* **deps:** update all non-major ([50fb209](https://github.com/ecomplus/application-starter/commit/50fb209b6ccaf6a4b3545e14eb98c9d8ff1c6916))
+* **deps:** update all non-major ([3690ad7](https://github.com/ecomplus/application-starter/commit/3690ad7822d4b0aa6823214a00347a1b6df42aba))
+* **deps:** update all non-major ([ade1d60](https://github.com/ecomplus/application-starter/commit/ade1d606ae9541e2851da6347cefe27bfa13734a))
+* **deps:** update all non-major ([7d407f8](https://github.com/ecomplus/application-starter/commit/7d407f8715546e54fcf939a986290675566710c7))
+* **deps:** update dependency dotenv to ^16.3.1 ([971e5f3](https://github.com/ecomplus/application-starter/commit/971e5f3a549a2aefd0ea68a2267a86ab629a63db))
+* **deps:** update dependency firebase-tools to ^11.22.0 ([6695e8b](https://github.com/ecomplus/application-starter/commit/6695e8bf11f0f31be42b4f958a5d4a25f580c0be))
+* **deps:** update dependency firebase-tools to ^11.24.0 ([6b63300](https://github.com/ecomplus/application-starter/commit/6b6330091b375bd907946aa336e8c9336bf6fd6a))
+* **deps:** update dependency firebase-tools to ^11.25.2 ([503bab1](https://github.com/ecomplus/application-starter/commit/503bab18b6fdda475695dc236902fcf18e17288d))
+* **deps:** update dependency firebase-tools to ^11.29.1 ([1f9dc17](https://github.com/ecomplus/application-starter/commit/1f9dc173a16c83e0d108081b25aa43e8978e7b91))
+* get info basic from items to create tag ([82a4165](https://github.com/ecomplus/application-starter/commit/82a41655be1bc82226ac999a9035163efa62b04a))
+* timeout ([f741661](https://github.com/ecomplus/application-starter/commit/f741661adc83fe32b89994910eb78c0b38c00239))
+* **webhook:** check flag instead of kangu reference to send tag ([b33981b](https://github.com/ecomplus/application-starter/commit/b33981b23c0e759146ee3066b5fc4683f5955ac6))
+
 ## [1.1.0](https://github.com/ecomplus/application-starter/compare/v1.0.2...v1.1.0) (2022-07-28)
 
 

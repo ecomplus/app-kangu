@@ -201,7 +201,8 @@ exports.post = ({ appSdk }, req, res) => {
       servicos: [
         'E',
         'X',
-        'R'
+        'R',
+        'M'
       ],
       ordernar,
       produtos

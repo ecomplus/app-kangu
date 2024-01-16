@@ -46,36 +46,6 @@ exports.post = ({ appSdk }, req, res) => {
   }
 
   const destinationZip = params.to ? params.to.zip.replace(/\D/g, '') : ''
-  let originZip, warehouseCode
-  if (params.from) {
-    originZip = params.from.zip
-  } else if (Array.isArray(appData.warehouses) && appData.warehouses.length) {
-    for (let i = 0; i < appData.warehouses.length; i++) {
-      const warehouse = appData.warehouses[i]
-      if (warehouse && warehouse.zip && checkZipCode(warehouse)) {
-        const { code } = warehouse
-        if (!code) {
-          continue
-        }
-        if (
-          params.items &&
-          params.items.find(({ quantity, inventory }) => inventory && Object.keys(inventory).length && !(inventory[code] >= quantity))
-        ) {
-          // item not available on current warehouse
-          continue
-        }
-        originZip = warehouse.zip
-        if (warehouse.doc) {
-          docNumber = warehouse.doc
-        }
-        warehouseCode = code
-      }
-    }
-  }
-  if (!originZip) {
-    originZip = appData.zip
-  }
-  originZip = typeof originZip === 'string' ? originZip.replace(/\D/g, '') : ''
 
   const matchService = (service, name) => {
     const fields = ['service_name', 'service_code']
@@ -121,6 +91,37 @@ exports.post = ({ appSdk }, req, res) => {
     }
     return lineAddress
   }
+
+  let originZip, warehouseCode
+  if (params.from) {
+    originZip = params.from.zip
+  } else if (Array.isArray(appData.warehouses) && appData.warehouses.length) {
+    for (let i = 0; i < appData.warehouses.length; i++) {
+      const warehouse = appData.warehouses[i]
+      if (warehouse && warehouse.zip && checkZipCode(warehouse)) {
+        const { code } = warehouse
+        if (!code) {
+          continue
+        }
+        if (
+          params.items &&
+          params.items.find(({ quantity, inventory }) => inventory && Object.keys(inventory).length && !(inventory[code] >= quantity))
+        ) {
+          // item not available on current warehouse
+          continue
+        }
+        originZip = warehouse.zip
+        if (warehouse.doc) {
+          docNumber = warehouse.doc
+        }
+        warehouseCode = code
+      }
+    }
+  }
+  if (!originZip) {
+    originZip = appData.zip
+  }
+  originZip = typeof originZip === 'string' ? originZip.replace(/\D/g, '') : ''
 
   // search for configured free shipping rule
   if (Array.isArray(appData.free_shipping_rules)) {

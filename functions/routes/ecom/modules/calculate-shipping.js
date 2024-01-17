@@ -92,7 +92,8 @@ exports.post = ({ appSdk }, req, res) => {
     return lineAddress
   }
 
-  let originZip, warehouseCode
+  let originZip, warehouseCode, docNumber
+  let isWareHouse = false
   if (params.from) {
     originZip = params.from.zip
   } else if (Array.isArray(appData.warehouses) && appData.warehouses.length) {
@@ -111,6 +112,7 @@ exports.post = ({ appSdk }, req, res) => {
           continue
         }
         originZip = warehouse.zip
+        isWareHouse = true
         if (warehouse.doc) {
           docNumber = warehouse.doc
         }
@@ -235,9 +237,7 @@ exports.post = ({ appSdk }, req, res) => {
       ordernar,
       produtos
     }
-    if (storeId == 51491) {
-      console.log('Body before calc', JSON.stringify(body))
-    }
+
     // send POST request to kangu REST API
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
@@ -384,7 +384,9 @@ exports.post = ({ appSdk }, req, res) => {
             response.shipping_services.push({
               label,
               carrier: kanguService.transp_nome,
-              carrier_doc_number: typeof kanguService.cnpjTransp === 'string'
+              carrier_doc_number: isWareHouse && docNumber
+              ? docNumber
+              : typeof kanguService.cnpjTransp === 'string'
                 ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
                 : undefined,
               service_name: serviceCode || kanguService.descricao,

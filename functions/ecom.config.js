@@ -295,6 +295,16 @@ const app = {
       },
       hide: false
     },
+    use_kubic_weight: {
+      schema: {
+        title: 'Utilizar cotação cubagem',
+        type: 'boolean',
+        description: 'Indicado apenas para produtos grandes. Acima de 36 cm de lado. A kangu tem um cálculo falho para produtos maiores e mais de uma unidade por pedido',
+        default: false
+
+      },
+      hide: false
+    },
     free_shipping_rules: {
       schema: {
         title: 'Regras de frete grátis',

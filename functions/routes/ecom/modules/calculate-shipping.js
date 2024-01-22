@@ -45,6 +45,8 @@ exports.post = ({ appSdk }, req, res) => {
     response.free_shipping_from_value = appData.free_shipping_from_value
   }
 
+  const useKubicWeight = appData.use_kubic_weight
+
   const destinationZip = params.to ? params.to.zip.replace(/\D/g, '') : ''
 
   const matchService = (service, name) => {
@@ -160,12 +162,36 @@ exports.post = ({ appSdk }, req, res) => {
   console.log('Before quote', storeId)
 
   if (params.items) {
+    const pkg = {
+      dimensions: {
+        width: {
+          value: 0,
+          unit: 'cm'
+        },
+        height: {
+          value: 0,
+          unit: 'cm'
+        },
+        length: {
+          value: 0,
+          unit: 'cm'
+        }
+      },
+      weight: {
+        value: 0,
+        unit: 'kg'
+      }
+    }
     let finalWeight = 0
+    let finalCubicWeight = 0
+    let finalPhysicalWeight = 0
     let cartSubtotal = 0
     const produtos = []
+    const volumes = []
     params.items.forEach((item) => {
       const { name, quantity, dimensions, weight } = item
       let physicalWeight = 0
+      let cubicWeight = 0
       // sum physical weight
       if (weight && weight.value) {
         switch (weight.unit) {
@@ -179,7 +205,8 @@ exports.post = ({ appSdk }, req, res) => {
             physicalWeight = weight.value / 1000000
         }
       }
-      finalWeight += (quantity * physicalWeight)
+      finalPhysicalWeight += (quantity * physicalWeight)
+      pkg.weight.value += finalPhysicalWeight
       cartSubtotal += (quantity * ecomUtils.price(item))
 
       // parse cart items to kangu schema
@@ -197,6 +224,7 @@ exports.post = ({ appSdk }, req, res) => {
         }
       }
       const cmDimensions = {}
+      const sumDimensions = {}
       if (dimensions) {
         for (const side in dimensions) {
           const dimension = dimensions[side]
@@ -211,8 +239,32 @@ exports.post = ({ appSdk }, req, res) => {
               default:
                 cmDimensions[side] = dimension.value
             }
+            // add/sum current side to final dimensions object
+            if (dimensionValue && useKubicWeight) {
+              sumDimensions[side] = sumDimensions[side]
+                ? sumDimensions[side] + dimensionValue
+                : dimensionValue
+            }
           }
         }
+
+        if (useKubicWeight) {
+          for (const sideCubic in sumDimensions) {
+            if (sumDimensions[sideCubic]) {
+              cubicWeight = cubicWeight > 0
+                ? cubicWeight * sumDimensions[sideCubic]
+                : sumDimensions[sideCubic]
+            }
+          }
+          if (cubicWeight > 0) {
+            cubicWeight /= 6000
+          }
+        }
+      }
+
+      if (useKubicWeight && physicalWeight > 0) {
+        finalCubicWeight += (quantity * cubicWeight)
+        finalWeight += (quantity * (cubicWeight < 5 || physicalWeight > quantity ? physicalWeight : cubicWeight))
       }
       produtos.push({
         peso: kgWeight || 0.5,
@@ -236,6 +288,23 @@ exports.post = ({ appSdk }, req, res) => {
       ],
       ordernar,
       produtos
+    }
+
+    if (appData.use_kubic_weight) {
+      const num = Math.cbrt(finalCubicWeight)
+      const cubigDimension = Math.round(num*100)/100
+      delete body.produtos
+      body.volumes = [{
+        peso: finalWeight || finalPhysicalWeight || 0.5,
+        altura: cubigDimension || 10,
+        largura: cubigDimension || 10,
+        comprimento: cubigDimension || 10,
+        valor: cartSubtotal,
+      }]
+      pkg.weight.value = finalCubicWeight
+      pkg.dimensions['width'].value = cubigDimension || 10
+      pkg.dimensions['height'].value = cubigDimension || 10
+      pkg.dimensions['length'].value = cubigDimension || 10
     }
 
     // send POST request to kangu REST API
@@ -300,12 +369,7 @@ exports.post = ({ appSdk }, req, res) => {
                 days: 3,
                 ...appData.posting_deadline
               },
-              package: {
-                weight: {
-                  value: finalWeight,
-                  unit: 'kg'
-                }
-              },
+              package: pkg,
               custom_fields: [
                 {
                   field: 'kangu_reference',

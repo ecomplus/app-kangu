@@ -240,10 +240,10 @@ exports.post = ({ appSdk }, req, res) => {
                 cmDimensions[side] = dimension.value
             }
             // add/sum current side to final dimensions object
-            if (dimensionValue && useKubicWeight) {
+            if (cmDimensions[side] && useKubicWeight) {
               sumDimensions[side] = sumDimensions[side]
-                ? sumDimensions[side] + dimensionValue
-                : dimensionValue
+                ? sumDimensions[side] + cmDimensions[side]
+                : cmDimensions[side]
             }
           }
         }

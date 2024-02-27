@@ -94,7 +94,7 @@ exports.post = ({ appSdk }, req, res) => {
     return lineAddress
   }
 
-  let originZip, warehouseCode, docNumber
+  let originZip, warehouseCode, docNumber, postingDeadline
   let isWareHouse = false
   if (params.from) {
     originZip = params.from.zip
@@ -115,6 +115,9 @@ exports.post = ({ appSdk }, req, res) => {
         }
         originZip = warehouse.zip
         isWareHouse = true
+        if (warehouse.posting_deadline) {
+          postingDeadline = warehouse.posting_deadline
+        }
         if (warehouse.doc) {
           docNumber = warehouse.doc
         }
@@ -346,7 +349,9 @@ exports.post = ({ appSdk }, req, res) => {
             const kanguPickup = Array.isArray(kanguService.pontosRetira)
               ? kanguService.pontosRetira[0]
               : false
-
+            const postDeadline = isWareHouse && postingDeadline 
+              ? postingDeadline
+              : appData.posting_deadline
             // push shipping service object to response
             const shippingLine = {
               from: {
@@ -367,7 +372,7 @@ exports.post = ({ appSdk }, req, res) => {
                 : undefined,
               posting_deadline: {
                 days: 3,
-                ...appData.posting_deadline
+                ...postDeadline
               },
               package: pkg,
               custom_fields: [

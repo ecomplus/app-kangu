@@ -64,15 +64,16 @@ exports.post = ({ appSdk }, req, res) => {
       }
 
       /* DO YOUR CUSTOM STUFF HERE */
-      const { kangu_token, send_tag_status } = appData
+      const { kangu_token, send_tag_status, send_tag_status_returned } = appData
       const sendStatus = parseStatus(send_tag_status)
+      const isReturn = send_tag_status_returned && order.fulfillment_status.current === 'returned_for_exchange'
       if (appData.enable_auto_tag && kangu_token && trigger.resource === 'orders') {
         // handle order fulfillment status changes
         const order = trigger.body
         if (
           order &&
           order.fulfillment_status &&
-          (!sendStatus && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status.current)
+          (!sendStatus && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status.current) || (isReturn)
         ) {
           // read full order body
           const resourceId = trigger.resource_id
@@ -84,7 +85,7 @@ exports.post = ({ appSdk }, req, res) => {
                 return res.send(ECHO_SKIP)
               }
               console.log(`Shipping tag for #${storeId} ${order._id}`)
-              return createTag(order, kangu_token, storeId, appData, appSdk)
+              return createTag(order, kangu_token, storeId, appData, appSdk, isReturn)
                 .then(data => {
                   console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`)
                   // updates hidden_metafields with the generated tag id

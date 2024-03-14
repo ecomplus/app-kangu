@@ -186,6 +186,14 @@ const app = {
       },
       hide: false
     },
+    send_tag_status_returned: {
+      schema: {
+        type: 'boolean',
+        title: 'Enviar etiqueta para kangu, quando ativar status Retorno e troca da encomenda',
+        default: false
+      },
+      hide: false
+    },
     seller: {
       schema: {
         type: 'object',

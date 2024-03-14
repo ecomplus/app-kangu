@@ -2,7 +2,7 @@ const axios = require('axios')
 const ecomUtils = require('@ecomplus/utils')
 const { logger } = require('firebase-functions')
 
-module.exports = async (order, token, storeId, appData, appSdk) => {
+module.exports = async (order, token, storeId, appData, appSdk, isReturn) => {
 // create new shipping tag with Kangu
 // https://portal.kangu.com.br/docs/api/transporte/#/
   const headers = {
@@ -121,6 +121,10 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
     numeroCli: order._id,
     vlrMerc: (order.amount && order.amount.total) || 0,
     tipo: sendType
+  }
+
+  if (storeId == 51331 & isReturn) {
+    data.pedido.numeroCli = order._id + 'r'
   }
 
   if (hasInvoice(order)) {

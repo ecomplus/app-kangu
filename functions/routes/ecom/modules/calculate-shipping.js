@@ -31,6 +31,7 @@ exports.post = ({ appSdk }, req, res) => {
   }
 
   const token = appData.kangu_token
+  const disableShipping = appData.unavailable_for
   if (!token) {
     // must have configured kangu doc number and token
     return res.status(409).send({
@@ -343,125 +344,146 @@ exports.post = ({ appSdk }, req, res) => {
           console.log('Quote with success', storeId)
           let lowestPriceShipping
           result.forEach(kanguService => {
-            // parse to E-Com Plus shipping line object
-            const serviceCode = String(kanguService.servico)
-            const price = kanguService.vlrFrete
-            const kanguPickup = Array.isArray(kanguService.pontosRetira)
-              ? kanguService.pontosRetira[0]
-              : false
-            const postDeadline = isWareHouse && postingDeadline 
-              ? postingDeadline
-              : appData.posting_deadline
-            // push shipping service object to response
-            const shippingLine = {
-              from: {
-                ...params.from,
-                ...appData.from,
-                zip: originZip
-              },
-              to: params.to,
-              price,
-              total_price: price,
-              discount: 0,
-              delivery_time: {
-                days: parseInt(kanguService.prazoEnt, 10),
-                working_days: true
-              },
-              delivery_instructions: kanguPickup
-                ? `${kanguPickup.nome} - ${completeAddress(kanguPickup.endereco)}`
-                : undefined,
-              posting_deadline: {
-                days: 3,
-                ...postDeadline
-              },
-              package: pkg,
-              custom_fields: [
-                {
-                  field: 'kangu_reference',
-                  value: kanguPickup
-                    ? String(kanguPickup.referencia)
-                    : String(kanguService.referencia)
-                },
-                {
-                  field: 'nfe_required',
-                  value: kanguService.nf_obrig === 'N' ? 'false' : 'true'
-                }
-              ],
-              flags: ['kangu-ws', `kangu-${serviceCode}`.substr(0, 20)]
-            }
-            if (!lowestPriceShipping || lowestPriceShipping.price > price) {
-              lowestPriceShipping = shippingLine
-            }
-
-            // check for default configured additional/discount price
-            if (appData.additional_price) {
-              if (appData.additional_price > 0) {
-                shippingLine.other_additionals = [{
-                  tag: 'additional_price',
-                  label: 'Adicional padrão',
-                  price: appData.additional_price
-                }]
-              } else {
-                // negative additional price to apply discount
-                shippingLine.discount -= appData.additional_price
-              }
-              // update total price
-              shippingLine.total_price += appData.additional_price
-            }
-
-            // search for discount by shipping rule
-            const shippingName = kanguService.transp_nome || kanguService.descricao
-            if (Array.isArray(shippingRules)) {
-              for (let i = 0; i < shippingRules.length; i++) {
-                const rule = shippingRules[i]
+            let disableShipping = false
+            // check if service is not disabled
+            if (Array.isArray(disableShipping) && disableShipping.length) {
+              for (let i = 0; i < disableShipping.length; i++) {
                 if (
-                  rule &&
-                  matchService(rule, shippingName) &&
-                  checkZipCode(rule) &&
-                  !(rule.min_amount > params.subtotal)
+                  disableShipping[i] && 
+                  disableShipping[i].zip_range &&
+                  checkZipCode(disableShipping[i]) &&
+                  disableShipping[i].service_name
                 ) {
-                  // valid shipping rule
-                  if (rule.discount && rule.service_name) {
-                    let discountValue = rule.discount.value
-                    if (rule.discount.percentage) {
-                      discountValue *= (shippingLine.total_price / 100)
-                    }
-                    shippingLine.discount += discountValue
-                    shippingLine.total_price -= discountValue
-                    if (shippingLine.total_price < 0) {
-                      shippingLine.total_price = 0
-                    }
-                    break
+                  const unavailable = disableShipping[i]
+                  if (
+                    matchService(unavailable, service.name)
+                  ) {
+                    disableShipping = true
                   }
                 }
               }
             }
-
-            // change label
-            let label = shippingName
-            if (appData.services && Array.isArray(appData.services) && appData.services.length) {
-              const service = appData.services.find(service => {
-                return service && matchService(service, label)
-              })
-              if (service && service.label) {
-                label = service.label
+            if (!disableShipping) {
+              // parse to E-Com Plus shipping line object
+              const serviceCode = String(kanguService.servico)
+              const price = kanguService.vlrFrete
+              const kanguPickup = Array.isArray(kanguService.pontosRetira)
+                ? kanguService.pontosRetira[0]
+                : false
+              const postDeadline = isWareHouse && postingDeadline 
+                ? postingDeadline
+                : appData.posting_deadline
+              // push shipping service object to response
+              const shippingLine = {
+                from: {
+                  ...params.from,
+                  ...appData.from,
+                  zip: originZip
+                },
+                to: params.to,
+                price,
+                total_price: price,
+                discount: 0,
+                delivery_time: {
+                  days: parseInt(kanguService.prazoEnt, 10),
+                  working_days: true
+                },
+                delivery_instructions: kanguPickup
+                  ? `${kanguPickup.nome} - ${completeAddress(kanguPickup.endereco)}`
+                  : undefined,
+                posting_deadline: {
+                  days: 3,
+                  ...postDeadline
+                },
+                package: pkg,
+                custom_fields: [
+                  {
+                    field: 'kangu_reference',
+                    value: kanguPickup
+                      ? String(kanguPickup.referencia)
+                      : String(kanguService.referencia)
+                  },
+                  {
+                    field: 'nfe_required',
+                    value: kanguService.nf_obrig === 'N' ? 'false' : 'true'
+                  }
+                ],
+                flags: ['kangu-ws', `kangu-${serviceCode}`.substr(0, 20)]
               }
+              if (!lowestPriceShipping || lowestPriceShipping.price > price) {
+                lowestPriceShipping = shippingLine
+              }
+
+              // check for default configured additional/discount price
+              if (appData.additional_price) {
+                if (appData.additional_price > 0) {
+                  shippingLine.other_additionals = [{
+                    tag: 'additional_price',
+                    label: 'Adicional padrão',
+                    price: appData.additional_price
+                  }]
+                } else {
+                  // negative additional price to apply discount
+                  shippingLine.discount -= appData.additional_price
+                }
+                // update total price
+                shippingLine.total_price += appData.additional_price
+              }
+
+              // search for discount by shipping rule
+              const shippingName = kanguService.transp_nome || kanguService.descricao
+              if (Array.isArray(shippingRules)) {
+                for (let i = 0; i < shippingRules.length; i++) {
+                  const rule = shippingRules[i]
+                  if (
+                    rule &&
+                    matchService(rule, shippingName) &&
+                    checkZipCode(rule) &&
+                    !(rule.min_amount > params.subtotal)
+                  ) {
+                    // valid shipping rule
+                    if (rule.discount && rule.service_name) {
+                      let discountValue = rule.discount.value
+                      if (rule.discount.percentage) {
+                        discountValue *= (shippingLine.total_price / 100)
+                      }
+                      shippingLine.discount += discountValue
+                      shippingLine.total_price -= discountValue
+                      if (shippingLine.total_price < 0) {
+                        shippingLine.total_price = 0
+                      }
+                      break
+                    }
+                  }
+                }
+              }
+
+              // change label
+              let label = shippingName
+              if (appData.services && Array.isArray(appData.services) && appData.services.length) {
+                const service = appData.services.find(service => {
+                  return service && matchService(service, label)
+                })
+                if (service && service.label) {
+                  label = service.label
+                }
+              }
+
+              const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
+
+              response.shipping_services.push({
+                label,
+                carrier: kanguService.transp_nome,
+                carrier_doc_number: isWareHouse && docNumber
+                ? docNumber
+                : typeof kanguService.cnpjTransp === 'string'
+                  ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
+                  : undefined,
+                service_name: serviceCode || kanguService.descricao,
+                service_code: serviceCodeName.substring(0, 70),
+                shipping_line: shippingLine
+              })
             }
-
-            const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
-
-            response.shipping_services.push({
-              label,
-              carrier: kanguService.transp_nome,
-              carrier_doc_number: isWareHouse && docNumber
-              ? docNumber
-              : typeof kanguService.cnpjTransp === 'string'
-                ? kanguService.cnpjTransp.replace(/\D/g, '').substr(0, 19)
-                : undefined,
-              service_name: serviceCode || kanguService.descricao,
-              service_code: serviceCodeName.substring(0, 70),
-              shipping_line: shippingLine
-            })
           })
 
           if (lowestPriceShipping) {

@@ -194,7 +194,6 @@ exports.post = ({ appSdk }, req, res) => {
     const volumes = []
     params.items.forEach((item) => {
       const { name, quantity, dimensions, weight, sku } = item
-      console.log('calculating to', name, sku)
       let physicalWeight = 0
       let cubicWeight = 0
       // sum physical weight
@@ -298,25 +297,23 @@ exports.post = ({ appSdk }, req, res) => {
 
     if (appData.use_kubic_weight) {
       const num = Math.cbrt(finalCubicWeight)
-      const cubigDimension = Math.round(num*100)/100
+      const cubicDimension = Math.round(num*100)/100
       delete body.produtos
       body.volumes = [{
         peso: finalWeight || finalPhysicalWeight || 0.5,
-        altura: cubigDimension || 10,
-        largura: cubigDimension || 10,
-        comprimento: cubigDimension || 10,
+        altura: cubicDimension || 10,
+        largura: cubicDimension || 10,
+        comprimento: cubicDimension || 10,
         valor: cartSubtotal,
       }]
       pkg.weight.value = finalCubicWeight
-      pkg.dimensions['width'].value = cubigDimension || 10
-      pkg.dimensions['height'].value = cubigDimension || 10
-      pkg.dimensions['length'].value = cubigDimension || 10
+      console.log('weight cubic', cubicDimension)
+      pkg.dimensions['width'].value = cubicDimension || 10
+      pkg.dimensions['height'].value = cubicDimension || 10
+      pkg.dimensions['length'].value = cubicDimension || 10
     }
 
     // send POST request to kangu REST API
-    if (storeId == 51331) {
-      console.log('Calc', JSON.stringify(body))
-    }
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
       body,

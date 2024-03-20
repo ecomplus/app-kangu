@@ -193,7 +193,8 @@ exports.post = ({ appSdk }, req, res) => {
     const produtos = []
     const volumes = []
     params.items.forEach((item) => {
-      const { name, quantity, dimensions, weight } = item
+      const { name, quantity, dimensions, weight, sku } = item
+      console.log('calculating to', name, sku)
       let physicalWeight = 0
       let cubicWeight = 0
       // sum physical weight
@@ -270,6 +271,7 @@ exports.post = ({ appSdk }, req, res) => {
         finalCubicWeight += (quantity * cubicWeight)
         finalWeight += (quantity * (cubicWeight < 5 || physicalWeight > quantity ? physicalWeight : cubicWeight))
       }
+
       produtos.push({
         peso: kgWeight || 0.5,
         altura: cmDimensions.height || 5,

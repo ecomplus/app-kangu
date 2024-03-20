@@ -31,7 +31,7 @@ exports.post = ({ appSdk }, req, res) => {
   }
 
   const token = appData.kangu_token
-  const disableShipping = appData.unavailable_for
+  const disableShippingRules = appData.unavailable_for
   if (!token) {
     // must have configured kangu doc number and token
     return res.status(409).send({
@@ -312,6 +312,9 @@ exports.post = ({ appSdk }, req, res) => {
     }
 
     // send POST request to kangu REST API
+    if (storeId == 51331) {
+      console.log('Calc', JSON.stringify(body))
+    }
     return axios.post(
       'https://portal.kangu.com.br/tms/transporte/simular',
       body,
@@ -346,15 +349,18 @@ exports.post = ({ appSdk }, req, res) => {
           result.forEach(kanguService => {
             let disableShipping = false
             // check if service is not disabled
-            if (Array.isArray(disableShipping) && disableShipping.length) {
-              for (let i = 0; i < disableShipping.length; i++) {
+            if (Array.isArray(disableShippingRules) && disableShippingRules.length) {
+              console.log('disable shipping')
+              for (let i = 0; i < disableShippingRules.length; i++) {
                 if (
-                  disableShipping[i] && 
-                  disableShipping[i].zip_range &&
-                  checkZipCode(disableShipping[i]) &&
-                  disableShipping[i].service_name
+                  disableShippingRules[i] && 
+                  disableShippingRules[i].zip_range &&
+                  checkZipCode(disableShippingRules[i]) &&
+                  disableShippingRules[i].service_name
                 ) {
-                  const unavailable = disableShipping[i]
+                  console.log('inside disable shipping')
+                  const unavailable = disableShippingRules[i]
+                  console.log('inside disable shipping', JSON.stringify(unavailable))
                   if (
                     matchService(unavailable, service.name)
                   ) {

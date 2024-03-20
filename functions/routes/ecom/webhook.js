@@ -88,11 +88,11 @@ exports.post = ({ appSdk }, req, res) => {
               console.log(`Shipping tag for #${storeId} ${order._id}`)
               return createTag(order, kangu_token, storeId, appData, appSdk)
                 .then(data => {
-                  console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`)
+                  console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`, JSON.stringify(data))
                   // updates hidden_metafields with the generated tag id
                   return appSdk.apiRequest(
                     storeId,
-                    `/orders/${resourceId}/hidden_metafields.json`,
+                    `/orders/${resourceId}/metafields.json`,
                     'POST',
                     {
                       namespace: 'app-kangu',

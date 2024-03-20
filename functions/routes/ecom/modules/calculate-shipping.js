@@ -362,7 +362,7 @@ exports.post = ({ appSdk }, req, res) => {
                   const unavailable = disableShippingRules[i]
                   console.log('inside disable shipping', JSON.stringify(unavailable))
                   if (
-                    matchService(unavailable, service.name)
+                    matchService(unavailable, (kanguService.transp_nome || kanguService.descricao))
                   ) {
                     disableShipping = true
                   }

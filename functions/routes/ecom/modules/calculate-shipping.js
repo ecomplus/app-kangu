@@ -125,7 +125,7 @@ exports.post = ({ appSdk }, req, res) => {
         if (warehouse && warehouse.street) {
           ;['zip', 'street', 'number', 'complement', 'borough', 'city', 'province_code'].forEach(prop => {
             if (warehouse[prop]) {
-              appData.from[prop] = warehouse[prop]
+              from[prop] = warehouse[prop]
             }
           })
         }
@@ -393,6 +393,7 @@ exports.post = ({ appSdk }, req, res) => {
                 from: {
                   ...params.from,
                   ...appData.from,
+                  ...from,
                   zip: originZip
                 },
                 to: params.to,

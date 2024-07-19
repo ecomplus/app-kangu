@@ -122,15 +122,11 @@ exports.post = ({ appSdk }, req, res) => {
           postingDeadline = warehouse.posting_deadline
         }
         if (warehouse && warehouse.street) {
-          from = {
-            zip: warehouse.zip
-            street: warehouse.street,
-            number: warehouse.number,
-            complement: warehouse.complement,
-            borough: warehouse.borough,
-            city: warehouse.city,
-            province_code: warehouse.province_code
-          }
+          ;['zip', 'street', 'number', 'complement', 'borough', 'city', 'province_code'].forEach(prop => {
+            if (warehouse[prop]) {
+              appData.from[prop] = warehouse[prop] 
+            } 
+          })
         }
         
         if (warehouse.doc) {
@@ -395,7 +391,8 @@ exports.post = ({ appSdk }, req, res) => {
               // push shipping service object to response
               const shippingLine = {
                 from: {
-                  ...from,
+                  ...params.from,
+                  ...appData.from
                   zip: originZip
                 },
                 to: params.to,

@@ -82,7 +82,8 @@ exports.post = ({ appSdk }, req, res) => {
           return appSdk.apiRequest(storeId, `/orders/${resourceId}.json`, 'GET', null, auth)
             .then(({ response }) => {
               const order = response.data
-              if (order && order.shipping_lines[0] && order.shipping_lines[0].flags && order.shipping_lines[0].flags.length && order.shipping_lines[0].flags.indexOf('kangu-ws') === -1) {
+              const shippingLine = order && order.shipping_lines && order.shipping_lines.length && order.shipping_lines[0]
+              if (shippingLine.flags && shippingLine.flags.length && shippingLine.flags.indexOf('kangu-ws') === -1) {
                 return res.send(ECHO_SKIP)
               }
               console.log(`Shipping tag for #${storeId} ${order._id}`)
@@ -90,41 +91,12 @@ exports.post = ({ appSdk }, req, res) => {
                 .then(data => {
                   console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`, JSON.stringify(data))
                   // updates hidden_metafields with the generated tag id
-                  return appSdk.apiRequest(
-                    storeId,
-                    `/orders/${resourceId}/metafields.json`,
-                    'POST',
-                    {
-                      namespace: 'app-kangu',
-                      field: 'rastreio',
-                      value: data.codigo
-                    },
-                    auth
-                  )
-                  .then(() => data)
-                  .catch(err => {
-                    console.log('Erro hidden data')
-                    if (err.response) {
-                      console.log(err.response)
-                      const { status, data } = err.response
-                      if (status !== 401 && status !== 403) {
-                        if (typeof data === 'object' && data) {
-                          console.log(JSON.stringify(data))
-                        } else {
-                          console.log(data)
-                        }
-                      }
-                    } else {
-                      console.error(err)
-                    }
+                  const custom_fields = shippingLine.custom_fields || []
+                  custom_fields.push({
+                    field: 'rastreio',
+                    value: data.codigo
                   })
-                })
-
-                .then(data => {
-                  console.log('Inserir rastreio', data)
-                  const tag = data
-                  if (tag.etiquetas.length) {
-                    const shippingLine = order.shipping_lines[0]
+                  if (data.etiquetas && data.etiquetas.length) {
                     if (shippingLine) {
                       const trackingCodes = shippingLine.tracking_codes || []
                       trackingCodes.push({
@@ -135,16 +107,17 @@ exports.post = ({ appSdk }, req, res) => {
                         storeId,
                         `/orders/${resourceId}/shipping_lines/${shippingLine._id}.json`,
                         'PATCH',
-                        { tracking_codes: trackingCodes },
+                        { 
+                          tracking_codes: trackingCodes,
+                          custom_fields 
+                         },
                         auth
                       )
                     }
                   }
-                  return null
                 })
-
                 .then(() => {
-                  console.log(`>> 'hidden_metafields' do pedido ${order._id} atualizado com sucesso!`)
+                  console.log(`>> Pedido ${order._id} atualizado com sucesso!`)
                   // done
                   res.send(ECHO_SUCCESS)
                 })

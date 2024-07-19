@@ -194,9 +194,8 @@ exports.post = ({ appSdk }, req, res) => {
     let finalPhysicalWeight = 0
     let cartSubtotal = 0
     const produtos = []
-    const volumes = []
     params.items.forEach((item) => {
-      const { name, quantity, dimensions, weight, sku } = item
+      const { quantity, dimensions, weight } = item
       let physicalWeight = 0
       let cubicWeight = 0
       // sum physical weight
@@ -385,7 +384,7 @@ exports.post = ({ appSdk }, req, res) => {
               const shippingLine = {
                 from: {
                   ...params.from,
-                  ...appData.from
+                  ...appData.from,
                   zip: originZip
                 },
                 to: params.to,

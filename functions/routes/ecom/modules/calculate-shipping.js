@@ -121,13 +121,6 @@ exports.post = ({ appSdk }, req, res) => {
         if (warehouse.posting_deadline) {
           postingDeadline = warehouse.posting_deadline
         }
-        if (warehouse && warehouse.street) {
-          ;['zip', 'street', 'number', 'complement', 'borough', 'city', 'province_code'].forEach(prop => {
-            if (warehouse[prop]) {
-              appData.from[prop] = warehouse[prop] 
-            } 
-          })
-        }
         
         if (warehouse.doc) {
           docNumber = warehouse.doc

@@ -150,6 +150,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         data.servicos = [shippingLine.app.service_name]
         // parse addresses and package info from shipping line object
         if (shippingLine.from) {
+          const warehouse = appData.warehouses && appData.warehouses.length && appData.warehouses.find(({zip}) => zip.replace(/\D/g, '') === shippingLine.from.zip.replace(/\D/g, ''))
           data.remetente = {}
           if (appData.seller) {
             data.remetente.nome = appData.seller.name
@@ -157,13 +158,13 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
             data.remetente.contato = appData.seller.contact
           }
           data.remetente.endereco = {
-            logradouro: shippingLine.from.street,
-            numero: shippingLine.from.number || 'SN',
-            bairro: shippingLine.from.borough,
+            logradouro: shippingLine.from.street || warehouse.street,
+            numero: shippingLine.from.number || warehouse.number ||'SN',
+            bairro: shippingLine.from.borough || warehouse.borough,
             cep: shippingLine.from.zip.replace(/\D/g, ''),
-            cidade: shippingLine.from.city,
-            uf: shippingLine.from.province_code,
-            complemento: shippingLine.from.complement || ''
+            cidade: shippingLine.from.city || warehouse.city,
+            uf: shippingLine.from.province_code || warehouse.province_code,
+            complemento: shippingLine.from.complement || warehouse.complement || ''
           }
         }
 

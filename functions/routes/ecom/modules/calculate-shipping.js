@@ -95,9 +95,11 @@ exports.post = ({ appSdk }, req, res) => {
     return lineAddress
   }
 
-  let originZip, warehouseCode, docNumber, postingDeadline, sender
+  let originZip, warehouseCode, docNumber, postingDeadline
+  let from = appData.from
   let isWareHouse = false
   if (params.from) {
+    from = params.from
     originZip = params.from.zip
   } else if (Array.isArray(appData.warehouses) && appData.warehouses.length) {
     for (let i = 0; i < appData.warehouses.length; i++) {
@@ -119,8 +121,8 @@ exports.post = ({ appSdk }, req, res) => {
         if (warehouse.posting_deadline) {
           postingDeadline = warehouse.posting_deadline
         }
-        if (warehouse.street) {
-          sender = {
+        if (warehouse && warehouse.street) {
+          from = {
             zip: warehouse.zip
             street: warehouse.street,
             number: warehouse.number,
@@ -393,9 +395,7 @@ exports.post = ({ appSdk }, req, res) => {
               // push shipping service object to response
               const shippingLine = {
                 from: {
-                  ...params.from,
-                  ...appData.from,
-                  ...sender,
+                  ...from,
                   zip: originZip
                 },
                 to: params.to,

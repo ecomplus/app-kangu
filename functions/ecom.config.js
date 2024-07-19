@@ -569,65 +569,65 @@ const app = {
               title: 'CEP de origem',
               description: 'Código postal do remetente para cálculo do frete'
             },
-              street: {
-                type: 'string',
-                maxLength: 200,
-                title: 'Digite a rua'
-              },
-              number: {
-                type: 'integer',
-                min: 1,
-                max: 9999999,
-                title: 'Digite o número da residência'
-              },
-              complement: {
-                type: 'string',
-                maxLength: 100,
-                title: 'Complemento'
-              },
-              borough: {
-                type: 'string',
-                maxLength: 100,
-                title: 'Bairro'
-              },
-              city: {
-                type: 'string',
-                maxLength: 100,
-                title: 'Cidade'
-              },
-              province_code: {
-                type: 'string',
-                title: 'Sigla do Estado',
-                enum: [
-                  'AC',
-                  'AL',
-                  'AP',
-                  'AM',
-                  'BA',
-                  'CE',
-                  'DF',
-                  'ES',
-                  'GO',
-                  'MA',
-                  'MT',
-                  'MS',
-                  'MG',
-                  'PA',
-                  'PB',
-                  'PR',
-                  'PE',
-                  'PI',
-                  'RR',
-                  'RO',
-                  'RJ',
-                  'RS',
-                  'RN',
-                  'SC',
-                  'SP',
-                  'SE',
-                  'TO'
-                ]
-              },
+            street: {
+              type: 'string',
+              maxLength: 200,
+              title: 'Digite a rua'
+            },
+            number: {
+              type: 'integer',
+              min: 1,
+              max: 9999999,
+              title: 'Digite o número da residência'
+            },
+            complement: {
+              type: 'string',
+              maxLength: 100,
+              title: 'Complemento'
+            },
+            borough: {
+              type: 'string',
+              maxLength: 100,
+              title: 'Bairro'
+            },
+            city: {
+              type: 'string',
+              maxLength: 100,
+              title: 'Cidade'
+            },
+            province_code: {
+              type: 'string',
+              title: 'Sigla do Estado',
+              enum: [
+                'AC',
+                'AL',
+                'AP',
+                'AM',
+                'BA',
+                'CE',
+                'DF',
+                'ES',
+                'GO',
+                'MA',
+                'MT',
+                'MS',
+                'MG',
+                'PA',
+                'PB',
+                'PR',
+                'PE',
+                'PI',
+                'RR',
+                'RO',
+                'RJ',
+                'RS',
+                'RN',
+                'SC',
+                'SP',
+                'SE',
+                'TO'
+              ]
+            },
             posting_deadline: {
               title: 'Prazo de envio do CD',
               type: 'object',

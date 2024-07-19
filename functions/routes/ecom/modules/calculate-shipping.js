@@ -95,7 +95,7 @@ exports.post = ({ appSdk }, req, res) => {
     return lineAddress
   }
 
-  let originZip, warehouseCode, docNumber, postingDeadline, from
+  let originZip, warehouseCode, docNumber, postingDeadline
   let from = appData.from
   let isWareHouse = false
   if (params.from) {

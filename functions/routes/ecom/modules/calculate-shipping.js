@@ -95,7 +95,7 @@ exports.post = ({ appSdk }, req, res) => {
     return lineAddress
   }
 
-  let originZip, warehouseCode, docNumber, postingDeadline
+  let originZip, warehouseCode, docNumber, postingDeadline, from
   let isWareHouse = false
   if (params.from) {
     originZip = params.from.zip
@@ -119,6 +119,18 @@ exports.post = ({ appSdk }, req, res) => {
         if (warehouse.posting_deadline) {
           postingDeadline = warehouse.posting_deadline
         }
+        if (warehouse.street) {
+          from = {
+            zip: warehouse.zip
+            street: warehouse.street,
+            number: warehouse.number,
+            complement: warehouse.complement,
+            borough: warehouse.borough,
+            city: warehouse.city,
+            province_code: warehouse.province_code
+          }
+        }
+        
         if (warehouse.doc) {
           docNumber = warehouse.doc
         }
@@ -383,6 +395,7 @@ exports.post = ({ appSdk }, req, res) => {
                 from: {
                   ...params.from,
                   ...appData.from,
+                  ...from,
                   zip: originZip
                 },
                 to: params.to,

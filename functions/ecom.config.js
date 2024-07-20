@@ -530,6 +530,15 @@ const app = {
       },
       hide: false
     },
+    send_number: {
+      schema: {
+        type: 'boolean',
+        default: false,
+        title: 'Ativar o envio de número do pedido ao invés de ID',
+        description: 'Nesse tipo de envio de modalidade, evite mudar o número do pedido'
+      },
+      hide: false
+    },
     warehouses: {
       schema: {
         title: 'Armazéns (multi CD)',

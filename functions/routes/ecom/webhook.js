@@ -66,16 +66,20 @@ exports.post = ({ appSdk }, req, res) => {
       /* DO YOUR CUSTOM STUFF HERE */
       const { kangu_token, send_tag_status, send_tag_status_returned } = appData
       const sendStatus = parseStatus(send_tag_status)
-      console.log('send status', sendStatus, 'order', trigger.resource_id)
+      console.log('send status', sendStatus, 'order', trigger.resource_id, appData.enable_auto_tag && kangu_token && trigger.resource === 'orders')
       // const isReturn = send_tag_status_returned && order.fulfillment_status.current === 'returned_for_exchange'
       // console.log(isReturn)
+      const order = trigger.body
+      console.log('order', JSON.stringify(order), order &&
+      (order.fulfillment_status || order.financial_status) &&
+      (!sendStatus && order.fulfillment_status && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === (order.fulfillment_status && order.fulfillment_status.current)) || (sendStatus === (order.financial_status && order.financial_status.current)))
       if (appData.enable_auto_tag && kangu_token && trigger.resource === 'orders') {
         // handle order fulfillment status changes
-        const order = trigger.body
+        
         if (
           order &&
           (order.fulfillment_status || order.financial_status) &&
-          (!sendStatus && order.fulfillment_status && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status && order.fulfillment_status.current) || (sendStatus === order.financial_status && order.financial_status.current)
+          (!sendStatus && order.fulfillment_status && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === (order.fulfillment_status && order.fulfillment_status.current)) || (sendStatus === (order.financial_status && order.financial_status.current))
         ) {
           // read full order body
           const resourceId = trigger.resource_id

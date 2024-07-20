@@ -186,14 +186,6 @@ const app = {
       },
       hide: false
     },
-    send_tag_status_returned: {
-      schema: {
-        type: 'boolean',
-        title: 'Enviar etiqueta para kangu, quando ativar status Retorno e troca da encomenda',
-        default: false
-      },
-      hide: false
-    },
     unavailable_for: {
       schema: {
         type: 'array',
@@ -696,14 +688,6 @@ procedures.push({
   title: app.title,
 
   triggers: [
-    // Receive notifications when new order is created:
-/*     {
-      resource: 'orders',
-      action: 'create',
-    }, */
-
-    // Receive notifications when order financial/fulfillment status are set or changed:
-    // Obs.: you probably SHOULD NOT enable the orders triggers below and the one above (create) together.
     {
       resource: 'orders',
       field: 'fulfillment_status',

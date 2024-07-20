@@ -75,7 +75,7 @@ exports.post = ({ appSdk }, req, res) => {
         if (
           order &&
           (order.fulfillment_status || order.financial_status) &&
-          (!sendStatus && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status.current) || (sendStatus === order.financial_status.current)
+          (!sendStatus && order.fulfillment_status && order.fulfillment_status.current === 'ready_for_shipping') || (sendStatus === order.fulfillment_status && order.fulfillment_status.current) || (sendStatus === order.financial_status && order.financial_status.current)
         ) {
           // read full order body
           const resourceId = trigger.resource_id

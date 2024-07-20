@@ -92,16 +92,18 @@ exports.post = ({ appSdk }, req, res) => {
                   console.log(`>> Etiqueta Criada Com Sucesso #${storeId} ${resourceId}`, JSON.stringify(data))
                   // updates hidden_metafields with the generated tag id
                   const custom_fields = shippingLine.custom_fields || []
+                  const orderData = data && data.length && data[0]
                   custom_fields.push({
                     field: 'rastreio',
-                    value: data.codigo
+                    value: orderData.codigo
                   })
-                  if (data.etiquetas && data.etiquetas.length) {
+                  
+                  if (orderData.etiquetas && orderData.etiquetas.length) {
                     if (shippingLine) {
                       const trackingCodes = shippingLine.tracking_codes || []
                       trackingCodes.push({
-                        code: tag.etiquetas[0].numeroTransp,
-                        link: `https://www.melhorrastreio.com.br/rastreio/${tag.etiquetas[0].numeroTransp}`
+                        code: orderData.etiquetas[0].numeroTransp,
+                        link: `https://www.melhorrastreio.com.br/rastreio/${orderData.etiquetas[0].numeroTransp}`
                       })
                       return appSdk.apiRequest(
                         storeId,

@@ -66,7 +66,7 @@ exports.post = ({ appSdk }, req, res) => {
       /* DO YOUR CUSTOM STUFF HERE */
       const { kangu_token, send_tag_status, send_tag_status_returned } = appData
       const sendStatus = parseStatus(send_tag_status)
-      console.log('send status', sendStatus, 'order', trigger.resource_id, )
+      console.log('send status', sendStatus, 'order', trigger.resource_id)
       // const isReturn = send_tag_status_returned && order.fulfillment_status.current === 'returned_for_exchange'
       // console.log(isReturn)
       if (appData.enable_auto_tag && kangu_token && trigger.resource === 'orders') {

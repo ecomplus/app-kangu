@@ -116,10 +116,11 @@ exports.post = ({ appSdk }, req, res) => {
                     }
                   }
                 })
-                .then(() => {
-                  console.log(`>> Pedido ${order._id} atualizado com sucesso!`)
+                .then((data) => {
+                  console.log(`>> Pedido ${order._id} atualizado com sucesso!`, data)
                   // done
-                  res.send(ECHO_SUCCESS)
+                  if (!res.headersSent) res.send(ECHO_SUCCESS)
+                  
                 })
                 .catch(err => {
                   console.log('deu error após gerar', err.message)
@@ -130,7 +131,7 @@ exports.post = ({ appSdk }, req, res) => {
     })
     .then(() => {
       // all done
-      res.send(ECHO_SUCCESS)
+      if (!res.headersSent) res.send(ECHO_SUCCESS)
     })
   })
 

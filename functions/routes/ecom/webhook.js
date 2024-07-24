@@ -96,14 +96,14 @@ exports.post = ({ appSdk }, req, res) => {
                   const orderData = data && data.length && data[0]
                   custom_fields.push({
                     field: 'rastreio',
-                    value: orderData.etiquetas[0].numeroTransp
+                    value: orderData.codigo && orderData.codigo.replaceAll(' ', '')
                   })
                   
                   if (orderData.etiquetas && orderData.etiquetas.length) {
                     if (shippingLine) {
                       const trackingCodes = shippingLine.tracking_codes || []
                       trackingCodes.push({
-                        code: orderData.codigo.replaceAll(' ', ''),
+                        code: orderData.etiquetas[0].numeroTransp,
                         link: 'https://www.kangu.com.br/rastreio/'
                       })
                       return appSdk.apiRequest(

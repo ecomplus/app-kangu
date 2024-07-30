@@ -84,7 +84,7 @@ exports.post = ({ appSdk }, req, res) => {
             .then(({ response }) => {
               const order = response.data
               const shippingLine = order && order.shipping_lines && order.shipping_lines.length && order.shipping_lines[0]
-              if (shippingLine.flags && shippingLine.flags.length && shippingLine.flags.indexOf('kangu-ws') === -1) {
+              if (!shippingLine.flags || shippingLine.flags.indexOf('kangu-ws') === -1) {
                 return res.send(ECHO_SKIP)
               }
               console.log(`Shipping tag for #${storeId} ${order._id}`)

@@ -1,6 +1,43 @@
 const axios = require('axios')
-const ecomUtils = require('@ecomplus/utils')
 const { logger } = require('firebase-functions')
+
+const debugAxiosError = error => {
+  const err = new Error(error.message)
+  if (error.response) {
+    err.status = error.response.status
+    err.response = error.response.data
+  }
+  err.request = error.config
+  logger.error(err)
+}
+
+const getShippingCustomField = (order, field) => {
+  if (order.shipping_lines) {
+    for (let i = 0; i < order.shipping_lines.length; i++) {
+      const shippingLineFields = order.shipping_lines[i].custom_fields
+      const customField = shippingLineFields?.find(custom => custom.field === field)
+      if (customField) {
+        return customField.value
+      }
+    }
+  }
+  return false
+}
+
+const getEcomProduct = (appSdk, storeId, productId) => {
+  const resource = `/products/${productId}.json`
+  return new Promise((resolve, reject) => {
+    appSdk.apiRequest(storeId, resource, 'GET', null, null, true)
+      .then(({ response }) => {
+        resolve({ response })
+      })
+      .catch((err) => {
+        console.log(err.message)
+        console.log('erro na request api')
+        reject(err)
+      })
+  })
+}
 
 module.exports = async (order, token, storeId, appData, appSdk) => {
 // create new shipping tag with Kangu
@@ -13,123 +50,75 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   const data = {}
   data.destinatario = {}
   data.remetente = {}
-
-  const kanguCustom = (order, field) => {
-    const shippingCustom = order.shipping_lines[0] && order.shipping_lines[0].custom_fields
-    const customField = shippingCustom.find(custom => custom.field === field); 
-    if (customField !== undefined && customField !== 'false') {
-      return customField.value
-    } else {
-      return false
-    }
-  }
-
-  const debugAxiosError = error => {
-    const err = new Error(error.message)
-    if (error.response) {
-      err.status = error.response.status
-      err.response = error.response.data
-    }
-    err.request = error.config
-    logger.error(err)
-  }
-
-  const getEcomProduct = (appSdk, storeId, productId) => {
-    const resource = `/products/${productId}.json`
-    return new Promise((resolve, reject) => {
-      appSdk.apiRequest(storeId, resource, 'GET', null, null, noAuth = true)
-        .then(({ response }) => {
-          resolve({ response })
-        })
-        .catch((err) => {
-          console.log(err.message)
-          console.log('erro na request api')
-          reject(err)
-        })
-    })     
-  }
-
-  const hasInvoice = (order) => {
-    return Boolean(order.shipping_lines.find(({ invoices }) => {
-      return invoices && invoices[0] && invoices[0].number
-    }))
-  }
-
-  const sendType = hasInvoice(order) ? 'N' : 'D'
+  const hasInvoice = Boolean(order.shipping_lines.find(({ invoices }) => {
+    return invoices && invoices[0] && invoices[0].number
+  }))
   const { items } = order
-
   // start parsing order body
   data.produtos = []
   if (items) {
     for (let i = 0; i < items.length; i++) {
-      let produto = {}
-      produto.valor = items[i].final_price
-      produto.quantidade = items[i].quantity
-      produto.produto = items[i].name
+      const produto = {
+        valor: items[i].final_price,
+        quantidade: items[i].quantity,
+        produto: items[i].name
+      }
       await getEcomProduct(appSdk, storeId, items[i].product_id)
-      .then(({ response }) => {
-        const product = response.data
-        const { name, dimensions, weight } = product
-        // parse cart items to kangu schema
-        let kgWeight = 0
-        if (weight && weight.value) {
-          switch (weight.unit) {
-            case 'g':
-              kgWeight = weight.value / 1000
-              break
-            case 'mg':
-              kgWeight = weight.value / 1000000
-              break
-            default:
-              kgWeight = weight.value
+        .then(({ response }) => {
+          const product = response.data
+          const { dimensions, weight } = product
+          let kgWeight = 0
+          if (weight && weight.value) {
+            switch (weight.unit) {
+              case 'g':
+                kgWeight = weight.value / 1000
+                break
+              case 'mg':
+                kgWeight = weight.value / 1000000
+                break
+              default:
+                kgWeight = weight.value
+            }
           }
-        }
-        const cmDimensions = {}
-        if (dimensions) {
-          for (const side in dimensions) {
-            const dimension = dimensions[side]
-            if (dimension && dimension.value) {
-              switch (dimension.unit) {
-                case 'm':
-                  cmDimensions[side] = dimension.value * 100
-                  break
-                case 'mm':
-                  cmDimensions[side] = dimension.value / 10
-                  break
-                default:
-                  cmDimensions[side] = dimension.value
+          const cmDimensions = {}
+          if (dimensions) {
+            for (const side in dimensions) {
+              const dimension = dimensions[side]
+              if (dimension && dimension.value) {
+                switch (dimension.unit) {
+                  case 'm':
+                    cmDimensions[side] = dimension.value * 100
+                    break
+                  case 'mm':
+                    cmDimensions[side] = dimension.value / 10
+                    break
+                  default:
+                    cmDimensions[side] = dimension.value
+                }
               }
             }
           }
-        }
-        produto.peso = kgWeight
-        produto.altura = cmDimensions.height || 0,
-        produto.largura = cmDimensions.width || 0,
-        produto.comprimento = cmDimensions.length || 0
-        data.produtos.push(produto)
-      })
-      .catch(err => {
-        console.log(err.message)
-        console.error('deu erro ao buscar produto')
-      })
+          produto.peso = kgWeight
+          produto.altura = cmDimensions.height || 0
+          produto.largura = cmDimensions.width || 0
+          produto.comprimento = cmDimensions.length || 0
+          data.produtos.push(produto)
+        })
+        .catch(logger.error)
     }
   }
-  // config source
   data.origem = 'E-Com Plus'
-  // config order info
   data.pedido = {
     numeroCli: order._id,
     vlrMerc: (order.amount && order.amount.total) || 0,
-    tipo: sendType
+    tipo: hasInvoice ? 'N' : 'D'
   }
-
-  if (hasInvoice(order)) {
+  if (hasInvoice) {
     const invoice = order.shipping_lines[0].invoices[0]
     data.pedido.numero = invoice.number
     data.pedido.serie = invoice.serial_number || '1'
     data.pedido.chave = invoice.access_key
   }
-  // config buyer information
   const buyer = order.buyers && order.buyers[0]
   if (buyer && buyer.doc_number) {
     data.destinatario.cnpjCpf = buyer.doc_number.replace(/\D/g, '')
@@ -138,11 +127,9 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   if (buyer && buyer.main_email) {
     data.destinatario.email = buyer.main_email
   }
-
   if (buyer && Array.isArray(buyer.phones) && buyer.phones.length) {
     data.destinatario.celular = buyer.phones[0].number
   }
-
   const requests = []
   if (order.shipping_lines) {
     order.shipping_lines.forEach(shippingLine => {
@@ -153,12 +140,15 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
           data.remetente = {}
           if (appData.seller) {
             data.remetente.nome = appData.seller.name
+            if (shippingLine.warehouse_code) {
+              data.remetente.nome += ` [${shippingLine.warehouse_code}]`
+            }
             data.remetente.cnpjCpf = appData.seller.doc_number
             data.remetente.contato = appData.seller.contact
           }
           data.remetente.endereco = {
             logradouro: shippingLine.from.street,
-            numero: shippingLine.from.number ||'SN',
+            numero: shippingLine.from.number || 'SN',
             bairro: shippingLine.from.borough,
             cep: shippingLine.from.zip.replace(/\D/g, ''),
             cidade: shippingLine.from.city,
@@ -166,7 +156,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
             complemento: shippingLine.from.complement || ''
           }
         }
-
         if (shippingLine.to) {
           data.destinatario.nome = shippingLine.to.name
           data.destinatario.endereco = {
@@ -181,11 +170,13 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         }
         if (shippingLine.package && shippingLine.package.weight) {
           const { value, unit } = shippingLine.package.weight
-          data.pedido.pesoMerc = !unit || unit === 'kg' ? value
-            : unit === 'g' ? value * 1000
+          data.pedido.pesoMerc = !unit || unit === 'kg'
+            ? value
+            : unit === 'g'
+              ? value * 1000
               : value * 1000000
         }
-        data.referencia = kanguCustom(order, 'kangu_reference')
+        data.referencia = getShippingCustomField(order, 'kangu_reference')
         console.log(`> Create tag for #${order._id}: ` + JSON.stringify(data))
         // send POST to generate Kangu tag
         requests.push(axios.post(
@@ -205,6 +196,5 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
       }
     })
   }
-    
   return Promise.all(requests)
 }

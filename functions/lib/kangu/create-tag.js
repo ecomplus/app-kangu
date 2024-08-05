@@ -158,6 +158,9 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         }
         if (shippingLine.to) {
           data.destinatario.nome = shippingLine.to.name
+          if (shippingLine.warehouse_code) {
+            data.destinatario.nome += ` [${shippingLine.warehouse_code}]`
+          }
           data.destinatario.endereco = {
             logradouro: shippingLine.to.street,
             numero: shippingLine.to.number || 'SN',

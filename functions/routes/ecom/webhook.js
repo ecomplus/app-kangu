@@ -104,7 +104,8 @@ exports.post = ({ appSdk }, req, res) => {
                       const trackingCodes = shippingLine.tracking_codes || []
                       trackingCodes.push({
                         code: orderData.etiquetas[0].numeroTransp,
-                        link: 'https://www.kangu.com.br/rastreio/'
+                        link: 'https://www.kangu.com.br/rastreio/',
+                        tag: 'kangu'
                       })
                       return appSdk.apiRequest(
                         storeId,

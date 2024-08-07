@@ -20,7 +20,7 @@ module.exports = async (
   // const shippingLine = order.shipping_lines?.find(({ app }) => app?.carrier === 'kangu')
   const shippingLine = order.shipping_lines?.find(({ custom_fields }) => custom_fields && custom_fields?.some(({ field }) => field === 'kangu_reference'))
   if (!shippingLine?.to) return
-  const customTracking = shippingLine?.find(custom => custom.field === 'rastreio')
+  const customTracking = shippingLine?.custom_fields.find(custom => custom.field === 'rastreio')
   let trackingId = null
   if (customTracking && customTracking.value) {
     trackingId = customTracking.value

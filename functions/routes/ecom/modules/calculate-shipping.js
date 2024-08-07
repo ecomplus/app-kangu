@@ -481,7 +481,7 @@ exports.post = ({ appSdk }, req, res) => {
             const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
             response.shipping_services.push({
               label,
-              carrier: kanguService.transp_nome,
+              carrier: 'kangu',
               carrier_doc_number: isWareHouse && docNumber
                 ? docNumber
                 : typeof kanguService.cnpjTransp === 'string'

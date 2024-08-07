@@ -109,7 +109,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   }
   data.origem = 'E-Com Plus'
   data.pedido = {
-    numeroCli: order._id,
+    numeroCli: appData.send_number ? order.number : order._id,
     vlrMerc: (order.amount && order.amount.total) || 0,
     tipo: hasInvoice ? 'N' : 'D'
   }

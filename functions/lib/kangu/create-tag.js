@@ -171,14 +171,6 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
             complemento: shippingLine.to.complement || ''
           }
         }
-        if (shippingLine.package && shippingLine.package.weight) {
-          const { value, unit } = shippingLine.package.weight
-          data.pedido.pesoMerc = !unit || unit === 'kg'
-            ? value
-            : unit === 'g'
-              ? value * 1000
-              : value * 1000000
-        }
         data.referencia = getShippingCustomField(order, 'kangu_reference')
         console.log(`> Create tag for #${order._id}: ` + JSON.stringify(data))
         // send POST to generate Kangu tag

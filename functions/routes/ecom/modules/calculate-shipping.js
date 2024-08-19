@@ -176,20 +176,6 @@ exports.post = ({ appSdk }, req, res) => {
 
   if (params.items) {
     const pkg = {
-      dimensions: {
-        width: {
-          value: 0,
-          unit: 'cm'
-        },
-        height: {
-          value: 0,
-          unit: 'cm'
-        },
-        length: {
-          value: 0,
-          unit: 'cm'
-        }
-      },
       weight: {
         value: 0,
         unit: 'kg'
@@ -303,7 +289,7 @@ exports.post = ({ appSdk }, req, res) => {
       produtos
     }
 
-    if (appData.use_kubic_weight) {
+    if (useKubicWeight) {
       const num = Math.cbrt(finalCubicWeight)
       const cubicDimension = Math.round(num * 100) / 100
       delete body.produtos
@@ -315,10 +301,6 @@ exports.post = ({ appSdk }, req, res) => {
         valor: cartSubtotal
       }]
       pkg.weight.value = finalCubicWeight
-      console.log('weight cubic', cubicDimension)
-      pkg.dimensions.width.value = cubicDimension || 10
-      pkg.dimensions.height.value = cubicDimension || 10
-      pkg.dimensions.length.value = cubicDimension || 10
     }
 
     // send POST request to kangu REST API

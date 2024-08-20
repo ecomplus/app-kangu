@@ -45,9 +45,6 @@ exports.post = ({ appSdk }, req, res) => {
   if (appData.free_shipping_from_value >= 0) {
     response.free_shipping_from_value = appData.free_shipping_from_value
   }
-
-  const useKubicWeight = appData.use_kubic_weight
-
   const destinationZip = params.to ? params.to.zip.replace(/\D/g, '') : ''
 
   const matchService = (service, name) => {
@@ -175,38 +172,14 @@ exports.post = ({ appSdk }, req, res) => {
   console.log('Before quote', storeId)
 
   if (params.items) {
-    const pkg = {
-      weight: {
-        value: 0,
-        unit: 'kg'
-      }
-    }
     let finalWeight = 0
     let finalCubicWeight = 0
-    let finalPhysicalWeight = 0
     let cartSubtotal = 0
     const produtos = []
     params.items.forEach((item) => {
       const { quantity, dimensions, weight } = item
-      let physicalWeight = 0
       let cubicWeight = 0
-      // sum physical weight
-      if (weight && weight.value) {
-        switch (weight.unit) {
-          case 'kg':
-            physicalWeight = weight.value
-            break
-          case 'g':
-            physicalWeight = weight.value / 1000
-            break
-          case 'mg':
-            physicalWeight = weight.value / 1000000
-        }
-      }
-      finalPhysicalWeight += (quantity * physicalWeight)
-      pkg.weight.value += finalPhysicalWeight
       cartSubtotal += (quantity * ecomUtils.price(item))
-
       // parse cart items to kangu schema
       let kgWeight = 0
       if (weight && weight.value) {
@@ -238,33 +211,28 @@ exports.post = ({ appSdk }, req, res) => {
                 cmDimensions[side] = dimension.value
             }
             // add/sum current side to final dimensions object
-            if (cmDimensions[side] && useKubicWeight) {
+            if (cmDimensions[side]) {
               sumDimensions[side] = sumDimensions[side]
                 ? sumDimensions[side] + cmDimensions[side]
                 : cmDimensions[side]
             }
           }
         }
-
-        if (useKubicWeight) {
-          for (const sideCubic in sumDimensions) {
-            if (sumDimensions[sideCubic]) {
-              cubicWeight = cubicWeight > 0
-                ? cubicWeight * sumDimensions[sideCubic]
-                : sumDimensions[sideCubic]
-            }
-          }
-          if (cubicWeight > 0) {
-            cubicWeight /= 6000
+        for (const side in sumDimensions) {
+          if (sumDimensions[side]) {
+            cubicWeight = cubicWeight > 0
+              ? cubicWeight * sumDimensions[side]
+              : sumDimensions[side]
           }
         }
+        if (cubicWeight > 0) {
+          cubicWeight /= 6000
+          finalCubicWeight += (quantity * cubicWeight)
+        }
       }
-
-      if (useKubicWeight && physicalWeight > 0) {
-        finalCubicWeight += (quantity * cubicWeight)
-        finalWeight += (quantity * (cubicWeight < 5 || physicalWeight > quantity ? physicalWeight : cubicWeight))
+      if (kgWeight > 0) {
+        finalWeight += (quantity * (cubicWeight < 0.5 || kgWeight > cubicWeight ? kgWeight : cubicWeight))
       }
-
       produtos.push({
         peso: kgWeight || 0.5,
         altura: cmDimensions.height || 5,
@@ -289,18 +257,17 @@ exports.post = ({ appSdk }, req, res) => {
       produtos
     }
 
-    if (useKubicWeight) {
+    if (appData.use_kubic_weight) {
       const num = Math.cbrt(finalCubicWeight)
       const cubicDimension = Math.round(num * 100) / 100
       delete body.produtos
       body.volumes = [{
-        peso: finalWeight || finalPhysicalWeight || 0.5,
+        peso: finalWeight || 0.5,
         altura: cubicDimension || 10,
         largura: cubicDimension || 10,
         comprimento: cubicDimension || 10,
         valor: cartSubtotal
       }]
-      pkg.weight.value = finalCubicWeight
     }
 
     // send POST request to kangu REST API
@@ -386,7 +353,12 @@ exports.post = ({ appSdk }, req, res) => {
                 days: 3,
                 ...postDeadline
               },
-              package: pkg,
+              package: {
+                weight: {
+                  value: finalWeight,
+                  unit: 'kg'
+                }
+              },
               warehouse_code: warehouseCode,
               custom_fields: [
                 {

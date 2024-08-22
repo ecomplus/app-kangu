@@ -422,7 +422,6 @@ exports.post = ({ appSdk }, req, res) => {
               }
             }
 
-            // change label
             let label = shippingName
             if (appData.services && Array.isArray(appData.services) && appData.services.length) {
               const service = appData.services.find(service => {
@@ -431,6 +430,9 @@ exports.post = ({ appSdk }, req, res) => {
               if (service && service.label) {
                 label = service.label
               }
+            }
+            if (warehouseCode) {
+              label += ` [${warehouseCode}]`
             }
             const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
             response.shipping_services.push({

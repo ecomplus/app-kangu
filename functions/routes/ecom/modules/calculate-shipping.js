@@ -431,9 +431,6 @@ exports.post = ({ appSdk }, req, res) => {
                 label = service.label
               }
             }
-            if (warehouseCode) {
-              label += ` [${warehouseCode}]`
-            }
             const serviceCodeName = shippingName.replaceAll(' ', '_').toLowerCase()
             response.shipping_services.push({
               label,

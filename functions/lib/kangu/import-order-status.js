@@ -50,7 +50,8 @@ module.exports = async (
   if (!status) {
     logger.warn(`No parsed fulfillment status for #${storeId} ${number}`, {
       trackingId,
-      trackingResult
+      trackingResult,
+      data
     })
     return
   }

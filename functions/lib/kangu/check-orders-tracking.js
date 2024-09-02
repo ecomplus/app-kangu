@@ -36,7 +36,6 @@ const fetchUndeliveredOrders = async ({ appSdk, storeId }) => {
           d2.setHours(d2.getHours() - 2)
           const endpoint = '/orders.json' +
             '?fields=_id,number,fulfillment_status,shipping_lines' +
-            '&shipping_lines.custom_fields.field=kangu_reference' +
             '&shipping_lines.tracking_codes.tag=kangu' +
             '&financial_status.current=paid' +
             '&fulfillment_status.current!=delivered' +

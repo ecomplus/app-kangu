@@ -1,28 +1,6 @@
 const axios = require('axios')
-const { logger } = require('firebase-functions')
-
-const debugAxiosError = error => {
-  const err = new Error(error.message)
-  if (error.response) {
-    err.status = error.response.status
-    err.response = error.response.data
-  }
-  err.request = error.config
-  logger.error(err)
-}
-
-const getShippingCustomField = (order, field) => {
-  if (order.shipping_lines) {
-    for (let i = 0; i < order.shipping_lines.length; i++) {
-      const shippingLineFields = order.shipping_lines[i].custom_fields
-      const customField = shippingLineFields?.find(custom => custom.field === field)
-      if (customField) {
-        return customField.value
-      }
-    }
-  }
-  return false
-}
+const logger = require('firebase-functions/logger')
+const { getShippingCustomField, debugAxiosError } = require('./util')
 
 const getEcomProduct = (appSdk, storeId, productId) => {
   const resource = `/products/${productId}.json`
@@ -32,8 +10,7 @@ const getEcomProduct = (appSdk, storeId, productId) => {
         resolve({ response })
       })
       .catch((err) => {
-        console.log(err.message)
-        console.log('erro na request api')
+        logger.error(err)
         reject(err)
       })
   })
@@ -172,19 +149,16 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
           }
         }
         data.referencia = getShippingCustomField(order, 'kangu_reference')
-        console.log(`> Create tag for #${order._id}: ` + JSON.stringify(data))
+        logger.info(`> Create tag for #${order._id}`, { data })
         // send POST to generate Kangu tag
         requests.push(axios.post(
           'https://portal.kangu.com.br/tms/transporte/solicitar',
           data,
-          {
-            headers
-          }
+          { headers }
         ).then(response => {
-          console.log('> Kangu create tag')
+          logger.info('> Kangu tag created')
           return response.data
         }).catch(error => {
-          console.log('deu erro na etiqueta')
           debugAxiosError(error)
           throw error
         }))

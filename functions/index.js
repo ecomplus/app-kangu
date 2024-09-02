@@ -144,8 +144,8 @@ exports.updateTokens = functions.pubsub.schedule(cron).onRun(() => {
 })
 console.log(`-- Sheduled update E-Com Plus tokens '${cron}'`)
 
-const cronCheckTracking = '*/47 * * * *'
+const cronCheckTracking = '*/20 * * * *'
 const checkOrdersTracking = require('./lib/kangu/check-orders-tracking')
-exports.checkOrdersTracking = functions.runWith({ timeoutSeconds: 300 })
+exports.checkOrdersTracking = functions.runWith({ timeoutSeconds: 540 })
   .pubsub.schedule(cronCheckTracking).onRun(checkOrdersTracking)
 console.log(`-- Sheduled check tracking from Kangu API ${cronCheckTracking}`)

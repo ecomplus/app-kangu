@@ -30,14 +30,18 @@ const fetchUndeliveredOrders = async ({ appSdk, storeId }) => {
         resolve()
         const token = appData.kangu_token
         if (token) {
-          const d = new Date()
-          d.setDate(d.getDate() - 30)
+          const d1 = new Date()
+          d1.setDate(d1.getDate() - 30)
+          const d2 = new Date()
+          d2.setHours(d2.getHours() - 2)
           const endpoint = '/orders.json' +
             '?fields=_id,number,fulfillment_status,shipping_lines' +
             '&shipping_lines.custom_fields.field=kangu_reference' +
+            '&shipping_lines.tracking_codes.tag=kangu' +
             '&financial_status.current=paid' +
             '&fulfillment_status.current!=delivered' +
-            `&updated_at>=${d.toISOString()}` +
+            `&updated_at>=${d1.toISOString()}` +
+            `&updated_at<=${d2.toISOString()}` +
             '&sort=updated_at' +
             '&limit=200'
           try {

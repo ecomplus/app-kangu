@@ -19,7 +19,19 @@ module.exports = async (
   { order, token }
 ) => {
   const { number } = order
-  const trackingId = getShippingCustomField(order, 'rastreio')
+  let trackingId = getShippingCustomField(order, 'rastreio')
+  if (!trackingId) {
+    for (let i = 0; i < order.shipping_lines.length; i++) {
+      const shippingLine = order.shipping_lines[i]
+      const trackingCode = shippingLine.tracking_codes?.find(({ tag }) => {
+        return tag === 'kangu'
+      })
+      if (trackingCode) {
+        trackingId = trackingCode.code
+        break
+      }
+    }
+  }
   if (!trackingId) {
     logger.warn(`No tracking ID for #${storeId} ${number}`)
     return

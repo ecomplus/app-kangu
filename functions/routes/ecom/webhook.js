@@ -66,38 +66,23 @@ exports.post = ({ appSdk }, req, res) => {
             logger.info(`Shipping tag for #${storeId} ${orderId}`)
             return createTag(order, kanguToken, storeId, appData, appSdk)
               .then(data => {
-                const customFields = shippingLine.custom_fields || []
-                const tagData = data?.[0]
-                if (!tagData?.codigo) {
-                  logger.warn(`Unexpected create tag response for ${orderId}`, {
-                    tagData,
-                    data
-                  })
+                const trackingCode = data?.[0]?.codigo?.replaceAll(' ', '')
+                if (!trackingCode) {
+                  logger.warn(`Unexpected create tag response for ${orderId}`, { data })
                   return
                 }
-                customFields.push({
-                  field: 'rastreio',
-                  value: tagData.codigo.replaceAll(' ', '')
+                const trackingCodes = shippingLine.tracking_codes || []
+                trackingCodes.push({
+                  code: trackingCode,
+                  link: 'https://www.kangu.com.br/rastreio/',
+                  tag: 'kangu'
                 })
-                const orderPatch = {
-                  custom_fields: customFields
-                }
-                const trackingCode = tagData.etiquetas?.[0]?.numeroTransp
-                if (trackingCode) {
-                  const trackingCodes = shippingLine.tracking_codes || []
-                  trackingCodes.push({
-                    code: trackingCode,
-                    link: 'https://www.kangu.com.br/rastreio/',
-                    tag: 'kangu'
-                  })
-                  orderPatch.tracking_codes = trackingCodes
-                }
-                logger.info(`Updating ${orderId}`, { orderPatch })
+                logger.info(`Updating ${orderId}`, { trackingCodes })
                 return appSdk.apiRequest(
                   storeId,
                   `/orders/${orderId}/shipping_lines/${shippingLine._id}.json`,
                   'PATCH',
-                  orderPatch,
+                  { tracking_codes: trackingCodes },
                   auth
                 )
               })

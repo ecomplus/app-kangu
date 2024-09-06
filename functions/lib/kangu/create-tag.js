@@ -33,14 +33,17 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   const { items } = order
   // start parsing order body
   data.produtos = []
+  let subtotal = 0
   if (items) {
     for (let i = 0; i < items.length; i++) {
+      const item = items[i]
       const produto = {
-        valor: items[i].final_price,
-        quantidade: items[i].quantity,
-        produto: items[i].name
+        valor: item.final_price || item.price,
+        quantidade: item.quantity,
+        produto: item.name
       }
-      await getEcomProduct(appSdk, storeId, items[i].product_id)
+      subtotal += (produto.valor * produto.quantidade)
+      await getEcomProduct(appSdk, storeId, item.product_id)
         .then(({ response }) => {
           const product = response.data
           const { dimensions, weight } = product
@@ -87,7 +90,7 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
   data.origem = 'E-Com Plus'
   data.pedido = {
     numeroCli: appData.send_number ? order.number : order._id,
-    vlrMerc: (order.amount && order.amount.total) || 0,
+    vlrMerc: subtotal || order.amount?.subtotal || 0,
     tipo: hasInvoice ? 'N' : 'D'
   }
   if (hasInvoice) {

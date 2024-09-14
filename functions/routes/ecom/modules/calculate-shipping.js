@@ -169,19 +169,15 @@ exports.post = ({ appSdk }, req, res) => {
     })
   }
 
-  console.log('Before quote', storeId)
-
   if (params.items) {
-    let finalWeight = 0
-    let finalCubicWeight = 0
+    let pkgWeight = 0
     let cartSubtotal = 0
     const produtos = []
     params.items.forEach((item) => {
       const { quantity, dimensions, weight } = item
-      let cubicWeight = 0
       cartSubtotal += (quantity * ecomUtils.price(item))
-      // parse cart items to kangu schema
       let kgWeight = 0
+      let cubicWeight = 0
       if (weight && weight.value) {
         switch (weight.unit) {
           case 'g':
@@ -194,12 +190,15 @@ exports.post = ({ appSdk }, req, res) => {
             kgWeight = weight.value
         }
       }
-      const cmDimensions = {}
-      const sumDimensions = {}
+      const cmDimensions = {
+        height: 5,
+        width: 10,
+        length: 10
+      }
       if (dimensions) {
         for (const side in dimensions) {
           const dimension = dimensions[side]
-          if (dimension && dimension.value) {
+          if (dimension?.value) {
             switch (dimension.unit) {
               case 'm':
                 cmDimensions[side] = dimension.value * 100
@@ -210,34 +209,30 @@ exports.post = ({ appSdk }, req, res) => {
               default:
                 cmDimensions[side] = dimension.value
             }
-            // add/sum current side to final dimensions object
-            if (cmDimensions[side]) {
-              sumDimensions[side] = sumDimensions[side]
-                ? sumDimensions[side] + cmDimensions[side]
-                : cmDimensions[side]
-            }
           }
         }
-        for (const side in sumDimensions) {
-          if (sumDimensions[side]) {
-            cubicWeight = cubicWeight > 0
-              ? cubicWeight * sumDimensions[side]
-              : sumDimensions[side]
+        let m3 = 1
+        for (const side in cmDimensions) {
+          if (cmDimensions[side]) {
+            m3 *= (cmDimensions[side] / 100)
           }
         }
-        if (cubicWeight > 0) {
-          cubicWeight /= 6000
-          finalCubicWeight += (quantity * cubicWeight)
+        if (m3 > 1) {
+          // 167 kg/m³
+          cubicWeight = m3 * 167
         }
       }
       if (kgWeight > 0) {
-        finalWeight += (quantity * (cubicWeight < 0.5 || kgWeight > cubicWeight ? kgWeight : cubicWeight))
+        const unitFinalWeight = cubicWeight < 0.5 || kgWeight > cubicWeight
+          ? kgWeight
+          : cubicWeight
+        pkgWeight += (quantity * unitFinalWeight)
       }
       produtos.push({
         peso: kgWeight || 0.5,
-        altura: cmDimensions.height || 5,
-        largura: cmDimensions.width || 10,
-        comprimento: cmDimensions.length || 10,
+        altura: cmDimensions.height,
+        largura: cmDimensions.width,
+        comprimento: cmDimensions.length,
         valor: ecomUtils.price(item),
         quantidade: quantity
       })
@@ -253,21 +248,18 @@ exports.post = ({ appSdk }, req, res) => {
         'R',
         'M'
       ],
-      ordernar,
-      produtos
+      ordernar
     }
-
-    if (appData.use_kubic_weight) {
-      const num = Math.cbrt(finalCubicWeight)
-      const cubicDimension = Math.round(num * 100) / 100
-      delete body.produtos
+    if (appData.use_kubic_weight || appData.use_cubic_weight) {
       body.volumes = [{
-        peso: finalWeight || 0.5,
-        altura: cubicDimension || 10,
-        largura: cubicDimension || 10,
-        comprimento: cubicDimension || 10,
+        peso: pkgWeight || 0.5,
+        altura: 4,
+        largura: 16,
+        comprimento: 24,
         valor: cartSubtotal
       }]
+    } else {
+      body.produtos = produtos
     }
 
     // send POST request to kangu REST API
@@ -355,7 +347,7 @@ exports.post = ({ appSdk }, req, res) => {
               },
               package: {
                 weight: {
-                  value: finalWeight,
+                  value: pkgWeight,
                   unit: 'kg'
                 }
               },

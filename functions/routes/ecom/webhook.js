@@ -64,9 +64,17 @@ exports.post = ({ appSdk }, req, res) => {
               return
             }
             logger.info(`Shipping tag for #${storeId} ${orderId}`)
-            return createTag(order, kanguToken, storeId, appData, appSdk)
+            return createTag({
+              order,
+              shippingLine,
+              kanguToken,
+              storeId,
+              appData,
+              appSdk
+            })
               .then(data => {
-                const trackingCode = data?.[0]?.codigo?.replaceAll(' ', '')
+                const trackingCode = data?.codigo?.replaceAll(' ', '') ||
+                  data?.[0]?.codigo?.replaceAll(' ', '')
                 if (!trackingCode) {
                   logger.warn(`Unexpected create tag response for ${orderId}`, { data })
                   return

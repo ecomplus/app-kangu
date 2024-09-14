@@ -16,33 +16,48 @@ const getEcomProduct = (appSdk, storeId, productId) => {
   })
 }
 
-module.exports = async (order, token, storeId, appData, appSdk) => {
-// create new shipping tag with Kangu
-// https://portal.kangu.com.br/docs/api/transporte/#/
+module.exports = async ({
+  order,
+  shippingLine,
+  kanguToken,
+  storeId,
+  appData,
+  appSdk
+}) => {
+  // create new shipping tag with Kangu
+  // https://portal.kangu.com.br/docs/api/transporte/#/
   const headers = {
-    token,
+    token: kanguToken,
     accept: 'application/json',
     'Content-Type': 'application/json'
   }
-  const data = {}
-  data.destinatario = {}
-  data.remetente = {}
-  const hasInvoice = Boolean(order.shipping_lines.find(({ invoices }) => {
-    return invoices && invoices[0] && invoices[0].number
-  }))
-  const { items } = order
-  // start parsing order body
-  data.produtos = []
-  let subtotal = 0
-  if (items) {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
+  const data = {
+    destinatario: {},
+    remetente: {}
+  }
+  const isUsingCubicWeight = (appData.use_kubic_weight || appData.use_cubic_weight)
+  if (isUsingCubicWeight && shippingLine.package?.weight) {
+    const { unit, value } = shippingLine.package.weight
+    data.volumes = [{
+      peso: !unit || unit === 'kg'
+        ? value
+        : unit === 'g'
+          ? value * 1000
+          : value * 1000000,
+      altura: 4,
+      largura: 16,
+      comprimento: 24,
+      valor: order.amount?.subtotal || 0
+    }]
+  } else if (order.items) {
+    data.produtos = []
+    for (let i = 0; i < order.items.length; i++) {
+      const item = order.items[i]
       const produto = {
         valor: item.final_price || item.price,
         quantidade: item.quantity,
         produto: item.name
       }
-      subtotal += (produto.valor * produto.quantidade)
       await getEcomProduct(appSdk, storeId, item.product_id)
         .then(({ response }) => {
           const product = response.data
@@ -87,86 +102,79 @@ module.exports = async (order, token, storeId, appData, appSdk) => {
         .catch(logger.error)
     }
   }
+  const invoice = shippingLine.invoices?.find((invoice) => {
+    return invoice.number && invoice.access_key
+  })
   data.origem = 'E-Com Plus'
   data.pedido = {
     numeroCli: appData.send_number ? order.number : order._id,
-    vlrMerc: subtotal || order.amount?.subtotal || 0,
-    tipo: hasInvoice ? 'N' : 'D'
+    vlrMerc: order.amount?.subtotal || 0,
+    tipo: invoice ? 'N' : 'D'
   }
-  if (hasInvoice) {
-    const invoice = order.shipping_lines[0].invoices[0]
+  if (invoice) {
     data.pedido.numero = invoice.number
     data.pedido.serie = invoice.serial_number || '1'
     data.pedido.chave = invoice.access_key
   }
-  const buyer = order.buyers && order.buyers[0]
-  if (buyer && buyer.doc_number) {
+  const buyer = order.buyers?.[0]
+  if (buyer?.doc_number) {
     data.destinatario.cnpjCpf = buyer.doc_number.replace(/\D/g, '')
     data.destinatario.contato = buyer.display_name
   }
-  if (buyer && buyer.main_email) {
+  if (buyer?.main_email) {
     data.destinatario.email = buyer.main_email
   }
-  if (buyer && Array.isArray(buyer.phones) && buyer.phones.length) {
+  if (buyer?.phones?.length) {
     data.destinatario.celular = buyer.phones[0].number
   }
-  const requests = []
-  if (order.shipping_lines) {
-    order.shipping_lines.forEach(shippingLine => {
-      if (shippingLine.app) {
-        data.servicos = [shippingLine.app.service_name]
-        // parse addresses and package info from shipping line object
-        if (shippingLine.from) {
-          data.remetente = {}
-          if (appData.seller) {
-            data.remetente.nome = appData.seller.name
-            if (shippingLine.warehouse_code) {
-              data.remetente.nome += ` [${shippingLine.warehouse_code}]`
-            }
-            data.remetente.cnpjCpf = appData.seller.doc_number
-            data.remetente.contato = appData.seller.contact
-          }
-          data.remetente.endereco = {
-            logradouro: shippingLine.from.street,
-            numero: shippingLine.from.number || 'SN',
-            bairro: shippingLine.from.borough,
-            cep: shippingLine.from.zip.replace(/\D/g, ''),
-            cidade: shippingLine.from.city,
-            uf: shippingLine.from.province_code,
-            complemento: shippingLine.from.complement || ''
-          }
-        }
-        if (shippingLine.to) {
-          data.destinatario.nome = shippingLine.to.name
-          if (shippingLine.warehouse_code) {
-            data.destinatario.nome += ` [${shippingLine.warehouse_code}]`
-          }
-          data.destinatario.endereco = {
-            logradouro: shippingLine.to.street,
-            numero: shippingLine.to.number || 'SN',
-            bairro: shippingLine.to.borough,
-            cep: shippingLine.to.zip.replace(/\D/g, ''),
-            cidade: shippingLine.to.city,
-            uf: shippingLine.to.province_code,
-            complemento: shippingLine.to.complement || ''
-          }
-        }
-        data.referencia = getShippingCustomField(order, 'kangu_reference')
-        logger.info(`> Create tag for #${order._id}`, { data })
-        // send POST to generate Kangu tag
-        requests.push(axios.post(
-          'https://portal.kangu.com.br/tms/transporte/solicitar',
-          data,
-          { headers }
-        ).then(response => {
-          logger.info('> Kangu tag created')
-          return response.data
-        }).catch(error => {
-          debugAxiosError(error)
-          throw error
-        }))
+  data.servicos = [shippingLine.app.service_name]
+  // parse addresses and package info from shipping line object
+  if (shippingLine.from) {
+    data.remetente = {}
+    if (appData.seller) {
+      data.remetente.nome = appData.seller.name
+      if (shippingLine.warehouse_code) {
+        data.remetente.nome += ` [${shippingLine.warehouse_code}]`
       }
-    })
+      data.remetente.cnpjCpf = appData.seller.doc_number
+      data.remetente.contato = appData.seller.contact
+    }
+    data.remetente.endereco = {
+      logradouro: shippingLine.from.street,
+      numero: shippingLine.from.number || 'SN',
+      bairro: shippingLine.from.borough,
+      cep: shippingLine.from.zip.replace(/\D/g, ''),
+      cidade: shippingLine.from.city,
+      uf: shippingLine.from.province_code,
+      complemento: shippingLine.from.complement || ''
+    }
   }
-  return Promise.all(requests)
+  if (shippingLine.to) {
+    data.destinatario.nome = shippingLine.to.name
+    if (shippingLine.warehouse_code) {
+      data.destinatario.nome += ` [${shippingLine.warehouse_code}]`
+    }
+    data.destinatario.endereco = {
+      logradouro: shippingLine.to.street,
+      numero: shippingLine.to.number || 'SN',
+      bairro: shippingLine.to.borough,
+      cep: shippingLine.to.zip.replace(/\D/g, ''),
+      cidade: shippingLine.to.city,
+      uf: shippingLine.to.province_code,
+      complemento: shippingLine.to.complement || ''
+    }
+  }
+  data.referencia = getShippingCustomField(order, 'kangu_reference')
+  logger.info(`> Create tag for #${order._id}`, { data })
+  return axios.post(
+    'https://portal.kangu.com.br/tms/transporte/solicitar',
+    data,
+    { headers }
+  ).then(response => {
+    logger.info('> Kangu tag created')
+    return response.data
+  }).catch(error => {
+    debugAxiosError(error)
+    throw error
+  })
 }

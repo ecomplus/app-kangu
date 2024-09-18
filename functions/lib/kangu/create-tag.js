@@ -54,7 +54,7 @@ module.exports = async ({
     for (let i = 0; i < order.items.length; i++) {
       const item = order.items[i]
       const produto = {
-        valor: item.final_price || item.price,
+        valor: item.final_price || item.price || 0.01,
         quantidade: item.quantity,
         produto: item.name
       }

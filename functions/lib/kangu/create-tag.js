@@ -47,7 +47,8 @@ module.exports = async ({
       altura: 4,
       largura: 16,
       comprimento: 24,
-      valor: order.amount?.subtotal || 0
+      valor: order.amount?.subtotal || 0,
+      produto: `Pedido #${order.number}`
     }]
   } else if (order.items) {
     data.produtos = []

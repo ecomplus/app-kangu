@@ -1,5 +1,6 @@
 const axios = require('axios')
 const ecomUtils = require('@ecomplus/utils')
+const { getBestPackage } = require('../../../lib/kangu/util')
 
 exports.post = ({ appSdk }, req, res) => {
   /**
@@ -171,6 +172,7 @@ exports.post = ({ appSdk }, req, res) => {
 
   if (params.items) {
     let pkgWeight = 0
+    let pkgM3Vol = 0
     let cartSubtotal = 0
     const produtos = []
     params.items.forEach((item) => {
@@ -218,6 +220,7 @@ exports.post = ({ appSdk }, req, res) => {
           }
         }
         if (m3 > 1) {
+          pkgM3Vol += m3
           // 167 kg/m³
           cubicWeight = m3 * 167
         }
@@ -256,6 +259,7 @@ exports.post = ({ appSdk }, req, res) => {
         altura: 4,
         largura: 16,
         comprimento: 24,
+        ...getBestPackage(pkgM3Vol),
         valor: cartSubtotal
       }]
     } else {

@@ -1,6 +1,10 @@
 const axios = require('axios')
 const logger = require('firebase-functions/logger')
-const { getShippingCustomField, debugAxiosError } = require('./util')
+const {
+  getBestPackage,
+  getShippingCustomField,
+  debugAxiosError
+} = require('./util')
 
 const getEcomProduct = (appSdk, storeId, productId) => {
   const resource = `/products/${productId}.json`
@@ -36,73 +40,91 @@ module.exports = async ({
     remetente: {}
   }
   const isUsingCubicWeight = (appData.use_kubic_weight || appData.use_cubic_weight)
-  if (isUsingCubicWeight && shippingLine.package?.weight) {
-    const { unit, value } = shippingLine.package.weight
-    data.volumes = [{
-      peso: !unit || unit === 'kg'
-        ? value
-        : unit === 'g'
-          ? value * 1000
-          : value * 1000000,
-      altura: 4,
-      largura: 16,
-      comprimento: 24,
-      valor: order.amount?.subtotal || 0,
-      produto: `Pedido #${order.number}`,
-      tipo: 'C'
-    }]
-  } else if (order.items) {
-    data.produtos = []
-    for (let i = 0; i < order.items.length; i++) {
-      const item = order.items[i]
-      const produto = {
-        valor: item.final_price || item.price || 0.01,
-        quantidade: item.quantity,
-        produto: item.name
-      }
-      await getEcomProduct(appSdk, storeId, item.product_id)
-        .then(({ response }) => {
-          const product = response.data
-          const { dimensions, weight } = product
-          let kgWeight = 0
-          if (weight && weight.value) {
-            switch (weight.unit) {
-              case 'g':
-                kgWeight = weight.value / 1000
-                break
-              case 'mg':
-                kgWeight = weight.value / 1000000
-                break
-              default:
-                kgWeight = weight.value
-            }
+  const produtos = []
+  let pkgKgWeight = 0
+  let pkgM3Vol = 0
+  for (let i = 0; i < order.items.length; i++) {
+    const item = order.items[i]
+    const { quantity } = item
+    const produto = {
+      valor: item.final_price || item.price || 0.01,
+      quantidade: quantity,
+      produto: item.name
+    }
+    await getEcomProduct(appSdk, storeId, item.product_id)
+      .then(({ response }) => {
+        const product = response.data
+        const { dimensions, weight } = product
+        let kgWeight = 0
+        let cubicWeight = 0
+        if (weight && weight.value) {
+          switch (weight.unit) {
+            case 'g':
+              kgWeight = weight.value / 1000
+              break
+            case 'mg':
+              kgWeight = weight.value / 1000000
+              break
+            default:
+              kgWeight = weight.value
           }
-          const cmDimensions = {}
-          if (dimensions) {
-            for (const side in dimensions) {
-              const dimension = dimensions[side]
-              if (dimension && dimension.value) {
-                switch (dimension.unit) {
-                  case 'm':
-                    cmDimensions[side] = dimension.value * 100
-                    break
-                  case 'mm':
-                    cmDimensions[side] = dimension.value / 10
-                    break
-                  default:
-                    cmDimensions[side] = dimension.value
-                }
+        }
+        const cmDimensions = {}
+        if (dimensions) {
+          for (const side in dimensions) {
+            const dimension = dimensions[side]
+            if (dimension && dimension.value) {
+              switch (dimension.unit) {
+                case 'm':
+                  cmDimensions[side] = dimension.value * 100
+                  break
+                case 'mm':
+                  cmDimensions[side] = dimension.value / 10
+                  break
+                default:
+                  cmDimensions[side] = dimension.value
               }
             }
           }
-          produto.peso = kgWeight
-          produto.altura = cmDimensions.height || 0
-          produto.largura = cmDimensions.width || 0
-          produto.comprimento = cmDimensions.length || 0
-          data.produtos.push(produto)
-        })
-        .catch(logger.error)
-    }
+        }
+        let m3 = 1
+        for (const side in cmDimensions) {
+          if (cmDimensions[side]) {
+            m3 *= (cmDimensions[side] / 100)
+          }
+        }
+        if (m3 > 1) {
+          pkgM3Vol += (quantity * m3)
+          // 167 kg/m³
+          cubicWeight = m3 * 167
+        }
+        if (kgWeight > 0) {
+          const unitFinalWeight = cubicWeight < 0.5 || kgWeight > cubicWeight
+            ? kgWeight
+            : cubicWeight
+          pkgKgWeight += (quantity * unitFinalWeight)
+        }
+        produto.peso = kgWeight
+        produto.altura = cmDimensions.height || 0
+        produto.largura = cmDimensions.width || 0
+        produto.comprimento = cmDimensions.length || 0
+        produtos.push(produto)
+      })
+      .catch(logger.error)
+  }
+  if (isUsingCubicWeight) {
+    data.produtos = [{
+      peso: pkgKgWeight,
+      altura: 4,
+      largura: 16,
+      comprimento: 24,
+      ...getBestPackage(pkgM3Vol),
+      valor: order.amount?.subtotal || 0,
+      quantidade: 1,
+      produto: `Pedido #${order.number}`
+    }]
+  } else if (order.items) {
+    data.produtos = produtos
   }
   const invoice = shippingLine.invoices?.find((invoice) => {
     return invoice.number && invoice.access_key

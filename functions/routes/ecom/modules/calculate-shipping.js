@@ -171,7 +171,7 @@ exports.post = ({ appSdk }, req, res) => {
   }
 
   if (params.items) {
-    let pkgWeight = 0
+    let pkgKgWeight = 0
     let pkgM3Vol = 0
     let cartSubtotal = 0
     const produtos = []
@@ -220,7 +220,7 @@ exports.post = ({ appSdk }, req, res) => {
           }
         }
         if (m3 > 1) {
-          pkgM3Vol += m3
+          pkgM3Vol += (quantity * m3)
           // 167 kg/m³
           cubicWeight = m3 * 167
         }
@@ -229,7 +229,7 @@ exports.post = ({ appSdk }, req, res) => {
         const unitFinalWeight = cubicWeight < 0.5 || kgWeight > cubicWeight
           ? kgWeight
           : cubicWeight
-        pkgWeight += (quantity * unitFinalWeight)
+        pkgKgWeight += (quantity * unitFinalWeight)
       }
       produtos.push({
         peso: kgWeight || 0.5,
@@ -254,13 +254,14 @@ exports.post = ({ appSdk }, req, res) => {
       ordernar
     }
     if (appData.use_kubic_weight || appData.use_cubic_weight) {
-      body.volumes = [{
-        peso: pkgWeight || 0.5,
+      body.produtos = [{
+        peso: pkgKgWeight || 0.5,
         altura: 4,
         largura: 16,
         comprimento: 24,
         ...getBestPackage(pkgM3Vol),
-        valor: cartSubtotal
+        valor: cartSubtotal,
+        quantidade: 1
       }]
     } else {
       body.produtos = produtos
@@ -351,7 +352,7 @@ exports.post = ({ appSdk }, req, res) => {
               },
               package: {
                 weight: {
-                  value: pkgWeight,
+                  value: pkgKgWeight,
                   unit: 'kg'
                 }
               },

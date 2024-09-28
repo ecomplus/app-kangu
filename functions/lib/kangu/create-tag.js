@@ -115,9 +115,9 @@ module.exports = async ({
   if (isUsingCubicWeight) {
     data.produtos = [{
       peso: pkgKgWeight,
-      altura: 4,
-      largura: 16,
-      comprimento: 24,
+      altura: 36,
+      largura: 70,
+      comprimento: 36,
       ...getBestPackage(pkgM3Vol),
       valor: order.amount?.subtotal || 0,
       quantidade: 1,

@@ -256,9 +256,9 @@ exports.post = ({ appSdk }, req, res) => {
     if (appData.use_kubic_weight || appData.use_cubic_weight) {
       body.produtos = [{
         peso: pkgKgWeight || 0.5,
-        altura: 4,
-        largura: 16,
-        comprimento: 24,
+        altura: 36,
+        largura: 70,
+        comprimento: 36,
         ...getBestPackage(pkgM3Vol),
         valor: cartSubtotal,
         quantidade: 1

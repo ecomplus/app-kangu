@@ -93,7 +93,7 @@ module.exports = async ({
             m3 *= (cmDimensions[side] / 100)
           }
         }
-        if (m3 > 1) {
+        if (m3 !== 1) {
           pkgM3Vol += (quantity * m3)
           // 167 kg/m³
           cubicWeight = m3 * 167

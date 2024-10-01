@@ -85,7 +85,7 @@ exports.post = ({ appSdk }, req, res) => {
                   link: 'https://www.kangu.com.br/rastreio/',
                   tag: 'kangu'
                 })
-                logger.info(`Updating ${orderId}`, { trackingCodes })
+                logger.info(`Updating ${orderId}`, { data, trackingCodes })
                 return appSdk.apiRequest(
                   storeId,
                   `/orders/${orderId}/shipping_lines/${shippingLine._id}.json`,

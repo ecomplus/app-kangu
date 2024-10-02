@@ -85,6 +85,14 @@ exports.post = ({ appSdk }, req, res) => {
                   link: 'https://www.kangu.com.br/rastreio/',
                   tag: 'kangu'
                 })
+                const carrierTrackingCode = data.etiquetas?.[0]?.numeroTransp;
+                if (carrierTrackingCode) {
+                  trackingCodes.push({
+                    code: carrierTrackingCode,
+                    link: 'https://www.kangu.com.br/rastreio/',
+                    tag: 'kangu_transp'
+                  })
+                }
                 logger.info(`Updating ${orderId}`, { data, trackingCodes })
                 return appSdk.apiRequest(
                   storeId,

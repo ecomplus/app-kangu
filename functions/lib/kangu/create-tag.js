@@ -166,7 +166,7 @@ module.exports = async ({
     data.remetente.endereco = {
       logradouro: shippingLine.from.street,
       numero: shippingLine.from.number || 'SN',
-      bairro: shippingLine.from.borough,
+      bairro: shippingLine.from.borough || shippingLine.from.city,
       cep: shippingLine.from.zip.replace(/\D/g, ''),
       cidade: shippingLine.from.city,
       uf: shippingLine.from.province_code,
@@ -181,7 +181,7 @@ module.exports = async ({
     data.destinatario.endereco = {
       logradouro: shippingLine.to.street,
       numero: shippingLine.to.number || 'SN',
-      bairro: shippingLine.to.borough,
+      bairro: shippingLine.to.borough || shippingLine.to.city,
       cep: shippingLine.to.zip.replace(/\D/g, ''),
       cidade: shippingLine.to.city,
       uf: shippingLine.to.province_code,
